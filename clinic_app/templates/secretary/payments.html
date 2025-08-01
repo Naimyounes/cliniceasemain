@@ -1,0 +1,193 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>إدارة المدفوعات</h1>
+        <div>
+            <span class="badge bg-info fs-6">إجمالي الزيارات: {{ visits.total }}</span>
+        </div>
+    </div>
+
+    <!-- فلتر حالة الدفع -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <label class="form-label">فلترة حسب حالة الدفع:</label>
+                    <select class="form-select" id="payment-filter" onchange="filterPayments()">
+                        <option value="all" {{ 'selected' if payment_filter == 'all' else '' }}>جميع الحالات</option>
+                        <option value="مدفوع" {{ 'selected' if payment_filter == 'مدفوع' else '' }}>مدفوع</option>
+                        <option value="غير مدفوع" {{ 'selected' if payment_filter == 'غير مدفوع' else '' }}>غير مدفوع</option>
+                        <option value="مدفوع جزئياً" {{ 'selected' if payment_filter == 'مدفوع جزئياً' else '' }}>مدفوع جزئياً</option>
+                    </select>
+                </div>
+                <div class="col-md-6 d-flex align-items-end">
+                    {% set unpaid_count = visits.items | selectattr('payment_status', 'equalto', 'غير مدفوع') | list | length %}
+                    {% set partial_count = visits.items | selectattr('payment_status', 'equalto', 'مدفوع جزئياً') | list | length %}
+                    <div>
+                        <span class="badge bg-danger me-2">غير مدفوع: {{ unpaid_count }}</span>
+                        <span class="badge bg-warning">جزئي: {{ partial_count }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- قائمة المدفوعات -->
+    <div class="card">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">سجل المدفوعات</h5>
+        </div>
+        <div class="card-body">
+            {% if visits.items %}
+                <div class="table-responsive">
+                    <table class="table table-hover table-striped">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>المريض</th>
+                                <th>الطبيب</th>
+                                <th>تاريخ الزيارة</th>
+                                <th>المبلغ</th>
+                                <th>حالة الدفع</th>
+                                <th>الإجراءات</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for visit in visits.items %}
+                                <tr>
+                                    <td>{{ loop.index + (visits.page - 1) * visits.per_page }}</td>
+                                    <td>
+                                        <strong>{{ visit.patient.full_name }}</strong><br>
+                                        <small class="text-muted">{{ visit.patient.phone }}</small>
+                                    </td>
+                                    <td>
+                                        <strong>د. {{ visit.doctor.username }}</strong>
+                                    </td>
+                                    <td>{{ format_datetime(visit.date) }}</td>
+                                    <td>
+                                        {% if visit.price %}
+                                            <strong>{{ visit.price }} ل.س</strong>
+                                        {% else %}
+                                            <span class="text-muted">غير محدد</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if visit.payment_status == 'مدفوع' %}
+                                            <span class="badge bg-success">مدفوع</span>
+                                        {% elif visit.payment_status == 'غير مدفوع' %}
+                                            <span class="badge bg-danger">غير مدفوع</span>
+                                        {% elif visit.payment_status == 'مدفوع جزئياً' %}
+                                            <span class="badge bg-warning">مدفوع جزئياً</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">{{ visit.payment_status }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm" role="group">
+                                            <a href="{{ url_for('secretary.patient_details', patient_id=visit.patient.id) }}" 
+                                               class="btn btn-info" title="عرض ملف المريض">
+                                                <i class="fas fa-user"></i>
+                                            </a>
+                                            {% if visit.payment_status != 'مدفوع' %}
+                                                <a href="{{ url_for('secretary.update_visit_payment', visit_id=visit.id) }}" 
+                                                   class="btn btn-success" title="تحديث حالة الدفع">
+                                                    <i class="fas fa-money-bill-wave"></i>
+                                                </a>
+                                                <button type="button" class="btn btn-primary" 
+                                                        onclick="markAsPaid({{ visit.id }})" 
+                                                        title="تحديد كمدفوع سريع">
+                                                    <i class="fas fa-check"></i>
+                                                </button>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- ترقيم الصفحات -->
+                <nav class="mt-4">
+                    <ul class="pagination justify-content-center">
+                        {% if visits.has_prev %}
+                            <li class="page-item">
+                                <a class="page-link" href="{{ url_for('secretary.payments', page=visits.prev_num, payment=payment_filter) }}">السابق</a>
+                            </li>
+                        {% else %}
+                            <li class="page-item disabled">
+                                <span class="page-link">السابق</span>
+                            </li>
+                        {% endif %}
+
+                        {% for page_num in visits.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+                            {% if page_num %}
+                                {% if visits.page == page_num %}
+                                    <li class="page-item active">
+                                        <span class="page-link">{{ page_num }}</span>
+                                    </li>
+                                {% else %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="{{ url_for('secretary.payments', page=page_num, payment=payment_filter) }}">{{ page_num }}</a>
+                                    </li>
+                                {% endif %}
+                            {% else %}
+                                <li class="page-item disabled">
+                                    <span class="page-link">...</span>
+                                </li>
+                            {% endif %}
+                        {% endfor %}
+
+                        {% if visits.has_next %}
+                            <li class="page-item">
+                                <a class="page-link" href="{{ url_for('secretary.payments', page=visits.next_num, payment=payment_filter) }}">التالي</a>
+                            </li>
+                        {% else %}
+                            <li class="page-item disabled">
+                                <span class="page-link">التالي</span>
+                            </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+            {% else %}
+                <div class="alert alert-info">
+                    لا توجد زيارات مطابقة للفلتر المحدد
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="mt-4">
+        <a href="{{ url_for('secretary.dashboard') }}" class="btn btn-secondary">العودة للوحة التحكم</a>
+    </div>
+</div>
+
+<script>
+function filterPayments() {
+    const payment = document.getElementById('payment-filter').value;
+    window.location.href = `{{ url_for('secretary.payments') }}?payment=${payment}`;
+}
+
+function markAsPaid(visitId) {
+    if (confirm('هل أنت متأكد من تحديد هذه الزيارة كمدفوعة؟')) {
+        // إنشاء نموذج مخفي لإرسال البيانات
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = `/secretary/visit/${visitId}/mark_as_paid`;
+        
+        const csrfInput = document.createElement('input');
+        csrfInput.type = 'hidden';
+        csrfInput.name = 'csrf_token';
+        csrfInput.value = '{{ csrf_token() }}';
+        
+        form.appendChild(csrfInput);
+        document.body.appendChild(form);
+        form.submit();
+    }
+}
+
+
+</script>
+{% endblock content %}

@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: clinicease
+    runtime: python
+    buildCommand: ""
+    startCommand: gunicorn run:app
+    envVars:
+      - key: FLASK_ENV
+        value: production
+    pythonVersion: 3.10

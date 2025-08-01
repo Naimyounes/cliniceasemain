@@ -1,0 +1,227 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('doctor.dashboard') }}">لوحة تحكم الطبيب</a></li>
+                <li class="breadcrumb-item"><a href="{{ url_for('doctor.patient_visit', patient_id=patient.id) }}">زيارة المريض</a></li>
+                <li class="breadcrumb-item active" aria-current="page">إنشاء وصفة طبية</li>
+            </ol>
+        </nav>
+
+        <div class="card mb-4">
+            <div class="card-header bg-info text-white">
+                <h3 class="mb-0">معلومات المريض</h3>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <p><strong>الاسم:</strong> {{ patient.full_name }}</p>
+                    </div>
+                    <div class="col-md-3">
+                        <p><strong>رقم الهاتف:</strong> {{ patient.phone }}</p>
+                    </div>
+                    <div class="col-md-3">
+                        <p><strong>تاريخ الميلاد:</strong> 
+                            {% if patient.birth_date %}
+                                {{ patient.birth_date.strftime('%Y-%m-%d') }}
+                            {% else %}
+                                غير محدد
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h3 class="mb-0">تفاصيل الزيارة</h3>
+            </div>
+            <div class="card-body">
+                <div class="row mb-2">
+                    <div class="col-md-2"><strong>التاريخ:</strong></div>
+                    <div class="col-md-10">{{ visit.date.strftime('%Y-%m-%d %H:%M') }}</div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-md-2"><strong>التشخيص:</strong></div>
+                    <div class="col-md-10">{{ visit.diagnosis }}</div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-md-2"><strong>العلاج:</strong></div>
+                    <div class="col-md-10">{{ visit.treatment }}</div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-md-2"><strong>الحالة:</strong></div>
+                    <div class="col-md-10">{{ visit.status }}</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header bg-success text-white">
+                <h3 class="mb-0">الوصفة الطبية</h3>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="">
+                    {{ form.hidden_tag() }}
+
+                    <div class="row mb-3">
+                        <div class="col-12">
+                            <div class="form-group">
+                                {{ form.predefined_prescription.label(class="form-control-label mb-1") }}
+                                {{ form.predefined_prescription(class="form-select") }}
+                                {% if form.predefined_prescription.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {% for error in form.predefined_prescription.errors %}
+                                            <span>{{ error }}</span>
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                                <small class="form-text text-muted mb-2 d-block">يمكنك اختيار وصفة طبية محددة مسبقًا لملء حقول الأدوية تلقائيًا.</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-12">
+                            <label class="form-control-label mb-1">الأدوية</label>
+                            <div id="medications-container">
+                                {% for medication_entry in form.medications %}
+                                    <div class="medication-entry card mb-2">
+                                        <div class="card-body">
+                                            <div class="row">
+                                                <div class="col-md-5">
+                                                    <div class="form-group">
+                                                        {{ medication_entry.medication_name.label(class="form-control-label") }}
+                                                        {{ medication_entry.medication_name(class="form-control") }}
+                                                        {% if medication_entry.medication_name.errors %}
+                                                            <div class="invalid-feedback d-block">
+                                                                {% for error in medication_entry.medication_name.errors %}
+                                                                    <span>{{ error }}</span>
+                                                                {% endfor %}
+                                                            </div>
+                                                        {% endif %}
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-5">
+                                                    <div class="form-group">
+                                                        {{ medication_entry.instructions.label(class="form-control-label") }}
+                                                        {{ medication_entry.instructions(class="form-control") }}
+                                                        {% if medication_entry.instructions.errors %}
+                                                            <div class="invalid-feedback d-block">
+                                                                {% for error in medication_entry.instructions.errors %}
+                                                                    <span>{{ error }}</span>
+                                                                {% endfor %}
+                                                            </div>
+                                                        {% endif %}
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-2 d-flex align-items-end">
+                                                    <button type="button" class="btn btn-danger remove-medication-btn w-100">إزالة</button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                            <button type="button" id="add-medication-btn" class="btn btn-info mt-2">إضافة دواء</button>
+                        </div>
+                    </div>
+
+                    <div class="text-center">
+                        {{ form.submit(class="btn btn-success px-5 py-2") }}
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock content %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const addMedicationBtn = document.getElementById('add-medication-btn');
+        const medicationsContainer = document.getElementById('medications-container');
+        const predefinedPrescriptionSelect = document.getElementById('predefined_prescription');
+
+        let medicationCount = medicationsContainer.children.length;
+
+        function addMedicationEntry(medicationName = '', instructions = '') {
+            const newEntry = document.createElement('div');
+            newEntry.classList.add('medication-entry', 'card', 'mb-2');
+            newEntry.innerHTML = `
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-5">
+                            <div class="form-group">
+                                <label for="medications-${medicationCount}-medication_name" class="form-control-label">اسم الدواء</label>
+                                <input type="text" id="medications-${medicationCount}-medication_name" name="medications-${medicationCount}-medication_name" class="form-control" value="${medicationName}">
+                            </div>
+                        </div>
+                        <div class="col-md-5">
+                            <div class="form-group">
+                                <label for="medications-${medicationCount}-instructions" class="form-control-label">التعليمات (الجرعة، المدة، إلخ)</label>
+                                <input type="text" id="medications-${medicationCount}-instructions" name="medications-${medicationCount}-instructions" class="form-control" value="${instructions}">
+                            </div>
+                        </div>
+                        <div class="col-md-2 d-flex align-items-end">
+                            <button type="button" class="btn btn-danger remove-medication-btn w-100">إزالة</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            medicationsContainer.appendChild(newEntry);
+            medicationCount++;
+            attachRemoveListeners();
+        }
+
+        function attachRemoveListeners() {
+            document.querySelectorAll('.remove-medication-btn').forEach(button => {
+                button.onclick = function() {
+                    this.closest('.medication-entry').remove();
+                };
+            });
+        }
+
+        addMedicationBtn.addEventListener('click', () => addMedicationEntry());
+
+        predefinedPrescriptionSelect.addEventListener('change', function() {
+            const prescriptionId = this.value;
+            if (prescriptionId) {
+                fetch(`/doctor/get_predefined_prescription/${prescriptionId}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        // Clear existing medications
+                        medicationsContainer.innerHTML = '';
+                        medicationCount = 0;
+
+                        data.medications.forEach(med => {
+                            addMedicationEntry(med.medication_name, med.instructions);
+                        });
+                    })
+                    .catch(error => console.error('Error fetching predefined prescription:', error));
+            } else {
+                // Clear medications if no predefined prescription is selected
+                medicationsContainer.innerHTML = '';
+                medicationCount = 0;
+            }
+        });
+
+        // Initial attachment of listeners for existing entries
+        attachRemoveListeners();
+    });
+</script>
+{% endblock scripts %}
+
+                    <div class="text-center">
+                        {{ form.submit(class="btn btn-success px-5 py-2") }}
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock content %}

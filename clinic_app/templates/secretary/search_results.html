@@ -1,0 +1,161 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header bg-info text-white">
+                    <h4 class="mb-0">
+                        <i class="fas fa-search me-2"></i>نتائج البحث: "{{ search }}"
+                    </h4>
+                </div>
+                <div class="card-body">
+                    {% if patients %}
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            تم العثور على {{ patients|length }} مريض مطابق للبحث
+                        </div>
+                        
+                        <div class="row">
+                            {% for patient in patients %}
+                            <div class="col-md-6 col-lg-4 mb-4">
+                                <div class="card border-info h-100">
+                                    <div class="card-body">
+                                        <div class="d-flex align-items-center mb-3">
+                                            <div class="avatar-circle bg-info text-white me-3">
+                                                {{ patient.full_name[0] }}
+                                            </div>
+                                            <div class="flex-grow-1">
+                                                <h5 class="mb-1">{{ patient.full_name }}</h5>
+                                                <p class="text-muted mb-0">
+                                                    <i class="fas fa-phone me-1"></i>{{ patient.phone }}
+                                                </p>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="patient-details mb-3">
+                                            {% if patient.birth_date %}
+                                            <p class="mb-1">
+                                                <i class="fas fa-birthday-cake me-2 text-muted"></i>
+                                                <small>{{ patient.birth_date.strftime('%Y-%m-%d') }}</small>
+                                            </p>
+                                            {% endif %}
+                                            {% if patient.gender %}
+                                            <p class="mb-1">
+                                                <i class="fas fa-user me-2 text-muted"></i>
+                                                <small>{{ 'ذكر' if patient.gender == 'male' else 'أنثى' if patient.gender == 'female' else patient.gender }}</small>
+                                            </p>
+                                            {% endif %}
+                                            {% if patient.blood_group %}
+                                            <p class="mb-1">
+                                                <i class="fas fa-tint me-2 text-muted"></i>
+                                                <small>{{ patient.blood_group }}</small>
+                                            </p>
+                                            {% endif %}
+                                        </div>
+                                        
+                                        <div class="d-grid gap-2">
+                                            <a href="{{ url_for('secretary.create_ticket', patient_id=patient.id) }}" 
+                                               class="btn btn-primary">
+                                                <i class="fas fa-ticket-alt me-2"></i>إنشاء تذكرة انتظار
+                                            </a>
+                                            <a href="{{ url_for('secretary.patient_details', patient_id=patient.id) }}" 
+                                               class="btn btn-outline-info">
+                                                <i class="fas fa-eye me-2"></i>عرض التفاصيل
+                                            </a>
+                                        </div>
+                                    </div>
+                                    <div class="card-footer text-muted">
+                                        <small>
+                                            <i class="fas fa-calendar me-1"></i>
+                                            مسجل منذ: {{ format_date(patient.created_at, '%Y-%m-%d') }}
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="text-center py-5">
+                            <i class="fas fa-search fa-3x text-muted mb-3"></i>
+                            <h4 class="text-muted">لم يتم العثور على نتائج</h4>
+                            <p class="text-muted mb-4">لا يوجد مرضى مطابقين لكلمة البحث "{{ search }}"</p>
+                            
+                            <div class="d-flex justify-content-center gap-3">
+                                <a href="{{ url_for('secretary.new_patient') }}" class="btn btn-success">
+                                    <i class="fas fa-user-plus me-2"></i>تسجيل مريض جديد
+                                </a>
+                                <button onclick="history.back()" class="btn btn-secondary">
+                                    <i class="fas fa-arrow-right me-2"></i>البحث مرة أخرى
+                                </button>
+                            </div>
+                        </div>
+                    {% endif %}
+                </div>
+                <div class="card-footer">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <a href="{{ url_for('secretary.dashboard') }}" class="btn btn-outline-secondary">
+                            <i class="fas fa-home me-2"></i>العودة للرئيسية
+                        </a>
+                        <button onclick="history.back()" class="btn btn-outline-primary">
+                            <i class="fas fa-search me-2"></i>بحث جديد
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.avatar-circle {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    font-weight: bold;
+}
+
+.card:hover {
+    transform: translateY(-3px);
+    transition: transform 0.3s ease;
+    box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+}
+
+.patient-details {
+    border-top: 1px solid #eee;
+    border-bottom: 1px solid #eee;
+    padding: 10px 0;
+}
+
+.btn {
+    transition: all 0.2s ease;
+}
+
+.btn:hover {
+    transform: translateY(-1px);
+}
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // إضافة تأثيرات للبطاقات
+    const cards = document.querySelectorAll('.card');
+    cards.forEach(card => {
+        card.addEventListener('mouseenter', function() {
+            this.style.transform = 'translateY(-3px)';
+            this.style.boxShadow = '0 8px 25px rgba(0,0,0,0.15)';
+        });
+        card.addEventListener('mouseleave', function() {
+            this.style.transform = '';
+            this.style.boxShadow = '';
+        });
+    });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,189 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('doctor.dashboard') }}">لوحة التحكم</a></li>
+                    <li class="breadcrumb-item active">التقويم</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                    <div>
+                        <a href="{{ url_for('doctor.doctor_calendar', year=prev_month_year, month=prev_month_month) }}" class="btn btn-light btn-sm">
+                            <i class="fas fa-chevron-right"></i> الشهر السابق
+                        </a>
+                    </div>
+                    <h3 class="mb-0">
+                        {% set months = ['', 'يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'] %}
+                        {{ months[current_month] }} {{ current_year }}
+                    </h3>
+                    <div>
+                        <a href="{{ url_for('doctor.doctor_calendar', year=next_month_year, month=next_month_month) }}" class="btn btn-light btn-sm">
+                            الشهر التالي <i class="fas fa-chevron-left"></i>
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-bordered mb-0 calendar-table">
+                            <thead class="table-light">
+                                <tr>
+                                    <th class="text-center">السبت</th>
+                                    <th class="text-center">الأحد</th>
+                                    <th class="text-center">الاثنين</th>
+                                    <th class="text-center">الثلاثاء</th>
+                                    <th class="text-center">الأربعاء</th>
+                                    <th class="text-center">الخميس</th>
+                                    <th class="text-center">الجمعة</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for week in calendar_data %}
+                                <tr>
+                                    {% for day_data in week %}
+                                    <td class="calendar-day {% if day_data.date.month != current_month %}other-month{% endif %}" 
+                                        data-date="{{ day_data.date.strftime('%Y-%m-%d') }}">
+                                        <div class="day-number">{{ day_data.date.day }}</div>
+                                        {% if day_data.visits %}
+                                        <div class="visits-count">
+                                            <span class="badge bg-primary">{{ day_data.visits|length }} زيارة</span>
+                                        </div>
+                                        {% endif %}
+                                    </td>
+                                    {% endfor %}
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for displaying daily visits -->
+    <div class="modal fade" id="visitsModal" tabindex="-1" aria-labelledby="visitsModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="visitsModalLabel">زيارات اليوم</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" id="visitsModalBody">
+                    <!-- Visits will be loaded here -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.calendar-table td {
+    height: 120px;
+    vertical-align: top;
+    position: relative;
+    cursor: pointer;
+}
+
+.calendar-day:hover {
+    background-color: #f8f9fa;
+}
+
+.day-number {
+    font-weight: bold;
+    font-size: 1.1em;
+    margin-bottom: 5px;
+}
+
+.other-month .day-number {
+    color: #ccc;
+}
+
+.visits-count {
+    position: absolute;
+    bottom: 5px;
+    left: 5px;
+}
+
+.calendar-table th {
+    text-align: center;
+    font-weight: bold;
+    background-color: #e9ecef;
+}
+</style>
+{% endblock content %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const calendarDays = document.querySelectorAll('.calendar-day');
+    const visitsModal = new bootstrap.Modal(document.getElementById('visitsModal'));
+    const visitsModalBody = document.getElementById('visitsModalBody');
+    const visitsModalLabel = document.getElementById('visitsModalLabel');
+
+    calendarDays.forEach(day => {
+        day.addEventListener('click', function() {
+            const date = this.dataset.date;
+            const dayNumber = this.querySelector('.day-number').textContent;
+            
+            // Update modal title
+            visitsModalLabel.textContent = `زيارات يوم ${date}`;
+            
+            // Show loading
+            visitsModalBody.innerHTML = '<div class="text-center"><i class="fas fa-spinner fa-spin"></i> جاري التحميل...</div>';
+            
+            // Show modal
+            visitsModal.show();
+            
+            // Fetch visits for this date
+            fetch(`/doctor/get_daily_visits?date=${date}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.length > 0) {
+                        let html = '<div class="table-responsive"><table class="table table-striped"><thead><tr><th>اسم المريض</th><th>الوقت</th><th>الحالة</th><th>الإجراءات</th></tr></thead><tbody>';
+                        data.forEach(visit => {
+                            let statusBadge = '';
+                            switch(visit.status) {
+                                case 'مستقر':
+                                    statusBadge = '<span class="badge bg-success">مستقر</span>';
+                                    break;
+                                case 'متابعة':
+                                    statusBadge = '<span class="badge bg-warning">متابعة</span>';
+                                    break;
+                                case 'طارئ':
+                                    statusBadge = '<span class="badge bg-danger">طارئ</span>';
+                                    break;
+                                default:
+                                    statusBadge = '<span class="badge bg-secondary">' + visit.status + '</span>';
+                            }
+                            
+                            html += `<tr>
+                                <td>${visit.patient_name}</td>
+                                <td>${visit.time}</td>
+                                <td>${statusBadge}</td>
+                                <td><a href="${visit.url}" class="btn btn-sm btn-primary">عرض التفاصيل</a></td>
+                            </tr>`;
+                        });
+                        html += '</tbody></table></div>';
+                        visitsModalBody.innerHTML = html;
+                    } else {
+                        visitsModalBody.innerHTML = '<div class="alert alert-info text-center">لا توجد زيارات في هذا اليوم</div>';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    visitsModalBody.innerHTML = '<div class="alert alert-danger text-center">حدث خطأ في تحميل البيانات</div>';
+                });
+        });
+    });
+});
+</script>
+{% endblock scripts %}

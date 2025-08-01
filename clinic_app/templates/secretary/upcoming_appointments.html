@@ -1,0 +1,312 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1><i class="fas fa-phone"></i> مواعيد الأيام القادمة - للاتصال المسبق</h1>
+        <div>
+            <span class="badge bg-info fs-6">
+                إجمالي المواعيد: {{ (today_appointments|length) + (tomorrow_appointments|length) + (day_after_appointments|length) }}
+            </span>
+        </div>
+    </div>
+
+    <!-- إشعارات سريعة -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="alert alert-warning d-flex align-items-center">
+                <i class="fas fa-exclamation-triangle fa-2x me-3"></i>
+                <div>
+                    <h6 class="mb-1">مواعيد اليوم</h6>
+                    <strong>{{ today_appointments|length }} موعد</strong>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="alert alert-info d-flex align-items-center">
+                <i class="fas fa-calendar-day fa-2x me-3"></i>
+                <div>
+                    <h6 class="mb-1">مواعيد الغد</h6>
+                    <strong>{{ tomorrow_appointments|length }} موعد</strong>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="alert alert-secondary d-flex align-items-center">
+                <i class="fas fa-calendar-plus fa-2x me-3"></i>
+                <div>
+                    <h6 class="mb-1">مواعيد بعد الغد</h6>
+                    <strong>{{ day_after_appointments|length }} موعد</strong>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- مواعيد اليوم -->
+    <div class="card mb-4">
+        <div class="card-header bg-warning text-dark">
+            <h4 class="mb-0">
+                <i class="fas fa-calendar-day"></i> مواعيد اليوم - {{ today.strftime('%Y-%m-%d') }}
+                <span class="badge bg-dark ms-2">{{ today_appointments|length }}</span>
+            </h4>
+        </div>
+        <div class="card-body">
+            {% if today_appointments %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>الوقت</th>
+                                <th>المريض</th>
+                                <th>رقم الهاتف</th>
+                                <th>الطبيب</th>
+                                <th>ملاحظات</th>
+                                <th>الإجراءات</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for appointment in today_appointments %}
+                                <tr class="{% if 'تم الاتصال' in (appointment.notes or '') %}table-success{% else %}table-warning{% endif %}">
+                                    <td>
+                                        <strong class="text-primary">{{ appointment.appointment_date.strftime('%H:%M') }}</strong>
+                                    </td>
+                                    <td>
+                                        <strong>{{ appointment.patient.full_name }}</strong>
+                                    </td>
+                                    <td>
+                                        <a href="tel:{{ appointment.patient.phone }}" class="btn btn-sm btn-outline-primary">
+                                            <i class="fas fa-phone"></i> {{ appointment.patient.phone }}
+                                        </a>
+                                    </td>
+                                    <td>د. {{ appointment.doctor.username }}</td>
+                                    <td>
+                                        {% if appointment.notes %}
+                                            <small>{{ appointment.notes[:50] }}{% if appointment.notes|length > 50 %}...{% endif %}</small>
+                                        {% else %}
+                                            <span class="text-muted">لا توجد ملاحظات</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if 'تم الاتصال' not in (appointment.notes or '') %}
+                                            <form method="POST" action="{{ url_for('secretary.mark_appointment_contacted', appointment_id=appointment.id) }}" style="display: inline;">
+                                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                                                <button type="submit" class="btn btn-success btn-sm" title="تسجيل الاتصال">
+                                                    <i class="fas fa-check"></i> تم الاتصال
+                                                </button>
+                                            </form>
+                                        {% else %}
+                                            <span class="badge bg-success">تم الاتصال</span>
+                                        {% endif %}
+                                        <a href="{{ url_for('secretary.view_appointment', appointment_id=appointment.id) }}" 
+                                           class="btn btn-info btn-sm" title="عرض التفاصيل">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle"></i> لا توجد مواعيد لليوم
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- مواعيد الغد -->
+    <div class="card mb-4">
+        <div class="card-header bg-info text-white">
+            <h4 class="mb-0">
+                <i class="fas fa-calendar-day"></i> مواعيد الغد - {{ tomorrow.strftime('%Y-%m-%d') }}
+                <span class="badge bg-light text-info ms-2">{{ tomorrow_appointments|length }}</span>
+            </h4>
+        </div>
+        <div class="card-body">
+            {% if tomorrow_appointments %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>الوقت</th>
+                                <th>المريض</th>
+                                <th>رقم الهاتف</th>
+                                <th>الطبيب</th>
+                                <th>ملاحظات</th>
+                                <th>الإجراءات</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for appointment in tomorrow_appointments %}
+                                <tr class="{% if 'تم الاتصال' in (appointment.notes or '') %}table-success{% endif %}">
+                                    <td>
+                                        <strong class="text-info">{{ appointment.appointment_date.strftime('%H:%M') }}</strong>
+                                    </td>
+                                    <td>
+                                        <strong>{{ appointment.patient.full_name }}</strong>
+                                    </td>
+                                    <td>
+                                        <a href="tel:{{ appointment.patient.phone }}" class="btn btn-sm btn-outline-primary">
+                                            <i class="fas fa-phone"></i> {{ appointment.patient.phone }}
+                                        </a>
+                                    </td>
+                                    <td>د. {{ appointment.doctor.username }}</td>
+                                    <td>
+                                        {% if appointment.notes %}
+                                            <small>{{ appointment.notes[:50] }}{% if appointment.notes|length > 50 %}...{% endif %}</small>
+                                        {% else %}
+                                            <span class="text-muted">لا توجد ملاحظات</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if 'تم الاتصال' not in (appointment.notes or '') %}
+                                            <form method="POST" action="{{ url_for('secretary.mark_appointment_contacted', appointment_id=appointment.id) }}" style="display: inline;">
+                                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                                                <button type="submit" class="btn btn-success btn-sm" title="تسجيل الاتصال">
+                                                    <i class="fas fa-check"></i> تم الاتصال
+                                                </button>
+                                            </form>
+                                        {% else %}
+                                            <span class="badge bg-success">تم الاتصال</span>
+                                        {% endif %}
+                                        <a href="{{ url_for('secretary.view_appointment', appointment_id=appointment.id) }}" 
+                                           class="btn btn-info btn-sm" title="عرض التفاصيل">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle"></i> لا توجد مواعيد للغد
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- مواعيد بعد الغد -->
+    <div class="card mb-4">
+        <div class="card-header bg-secondary text-white">
+            <h4 class="mb-0">
+                <i class="fas fa-calendar-plus"></i> مواعيد بعد الغد - {{ day_after_tomorrow.strftime('%Y-%m-%d') }}
+                <span class="badge bg-light text-secondary ms-2">{{ day_after_appointments|length }}</span>
+            </h4>
+        </div>
+        <div class="card-body">
+            {% if day_after_appointments %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>الوقت</th>
+                                <th>المريض</th>
+                                <th>رقم الهاتف</th>
+                                <th>الطبيب</th>
+                                <th>ملاحظات</th>
+                                <th>الإجراءات</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for appointment in day_after_appointments %}
+                                <tr class="{% if 'تم الاتصال' in (appointment.notes or '') %}table-success{% endif %}">
+                                    <td>
+                                        <strong class="text-secondary">{{ appointment.appointment_date.strftime('%H:%M') }}</strong>
+                                    </td>
+                                    <td>
+                                        <strong>{{ appointment.patient.full_name }}</strong>
+                                    </td>
+                                    <td>
+                                        <a href="tel:{{ appointment.patient.phone }}" class="btn btn-sm btn-outline-primary">
+                                            <i class="fas fa-phone"></i> {{ appointment.patient.phone }}
+                                        </a>
+                                    </td>
+                                    <td>د. {{ appointment.doctor.username }}</td>
+                                    <td>
+                                        {% if appointment.notes %}
+                                            <small>{{ appointment.notes[:50] }}{% if appointment.notes|length > 50 %}...{% endif %}</small>
+                                        {% else %}
+                                            <span class="text-muted">لا توجد ملاحظات</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if 'تم الاتصال' not in (appointment.notes or '') %}
+                                            <form method="POST" action="{{ url_for('secretary.mark_appointment_contacted', appointment_id=appointment.id) }}" style="display: inline;">
+                                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                                                <button type="submit" class="btn btn-success btn-sm" title="تسجيل الاتصال">
+                                                    <i class="fas fa-check"></i> تم الاتصال
+                                                </button>
+                                            </form>
+                                        {% else %}
+                                            <span class="badge bg-success">تم الاتصال</span>
+                                        {% endif %}
+                                        <a href="{{ url_for('secretary.view_appointment', appointment_id=appointment.id) }}" 
+                                           class="btn btn-info btn-sm" title="عرض التفاصيل">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle"></i> لا توجد مواعيد لبعد الغد
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- أزرار التنقل -->
+    <div class="d-flex justify-content-between mt-4">
+        <a href="{{ url_for('secretary.dashboard') }}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> العودة للوحة التحكم
+        </a>
+        <div>
+            <a href="{{ url_for('secretary.appointments') }}" class="btn btn-primary">
+                <i class="fas fa-calendar"></i> جميع المواعيد
+            </a>
+            <button onclick="window.print()" class="btn btn-outline-secondary">
+                <i class="fas fa-print"></i> طباعة
+            </button>
+        </div>
+    </div>
+</div>
+
+<style>
+@media print {
+    .btn, .card-header, .alert {
+        -webkit-print-color-adjust: exact !important;
+        color-adjust: exact !important;
+    }
+}
+
+.table-success {
+    background-color: #d1e7dd !important;
+}
+
+.table-warning {
+    background-color: #fff3cd !important;
+}
+</style>
+
+<script>
+// تحديث الصفحة كل 5 دقائق للحصول على آخر المواعيد
+setInterval(function() {
+    location.reload();
+}, 300000); // 5 دقائق
+
+// تأكيد قبل تسجيل الاتصال
+document.querySelectorAll('form[action*="mark_contacted"]').forEach(form => {
+    form.addEventListener('submit', function(e) {
+        if (!confirm('هل تم الاتصال بالمريض فعلاً؟')) {
+            e.preventDefault();
+        }
+    });
+});
+</script>
+{% endblock content %}

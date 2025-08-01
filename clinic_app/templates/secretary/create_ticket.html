@@ -1,0 +1,510 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <!-- البحث عن المريض -->
+            <div class="search-container">
+                <div class="row">
+                    <div class="col-md-8">
+                        <div class="position-relative">
+                            <label class="form-label fw-bold text-primary mb-2">
+                                <i class="fas fa-search me-2"></i>البحث عن المريض
+                            </label>
+                            <div class="input-group input-group-lg">
+                                <span class="input-group-text bg-info text-white">
+                                    <i class="fas fa-search"></i>
+                                </span>
+                                <input type="text" id="live-search" class="form-control form-control-lg" 
+                                       placeholder="ابدأ بكتابة اسم المريض أو رقم الهاتف..." 
+                                       autocomplete="off" autofocus>
+                                <button class="btn btn-outline-secondary" type="button" onclick="clearSearch()" title="مسح البحث">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                            <small class="form-text text-muted mt-2 d-block">
+                                <i class="fas fa-info-circle me-1"></i>ستظهر النتائج تلقائياً بعد كتابة حرفين على الأقل
+                            </small>
+                            
+                            <!-- نتائج البحث المباشر -->
+                            <div id="search-results" class="position-absolute w-100 mt-1 shadow rounded bg-white border" 
+                                 style="z-index: 1000; max-height: 400px; overflow-y: auto; display: none;">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="text-center">
+                            <label class="form-label fw-bold text-success mb-2">
+                                <i class="fas fa-user-plus me-2"></i>مريض جديد؟
+                            </label>
+                            <div class="d-grid">
+                                <a href="{{ url_for('secretary.new_patient') }}" class="btn btn-success btn-lg">
+                                    <i class="fas fa-user-plus me-2"></i>تسجيل مريض جديد
+                                </a>
+                            </div>
+                            <small class="text-muted mt-2 d-block">إذا كان المريض غير مسجل في النظام</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">
+                        <i class="fas fa-chart-bar me-2"></i>إحصائيات اليوم
+                    </h4>
+                </div>
+                <div class="card-body">
+
+                    <!-- إحصائيات سريعة -->
+                    <div class="row mb-4">
+                        <div class="col-md-3 mb-3">
+                            <div class="card bg-gradient-primary text-white h-100">
+                                <div class="card-body text-center">
+                                    <i class="fas fa-users fa-2x mb-2"></i>
+                                    <h4>{{ total_patients or 0 }}</h4>
+                                    <small>إجمالي المرضى</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="card bg-gradient-warning text-white h-100">
+                                <div class="card-body text-center">
+                                    <i class="fas fa-hourglass-half fa-2x mb-2"></i>
+                                    <h4>{{ waiting_count or 0 }}</h4>
+                                    <small>في الانتظار</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="card bg-gradient-success text-white h-100">
+                                <div class="card-body text-center">
+                                    <i class="fas fa-ticket-alt fa-2x mb-2"></i>
+                                    <h4>{{ next_ticket_number or 1 }}</h4>
+                                    <small>رقم التذكرة التالي</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="card bg-gradient-info text-white h-100">
+                                <div class="card-body text-center">
+                                    <i class="fas fa-calendar-day fa-2x mb-2"></i>
+                                    <h4>{{ today_tickets or 0 }}</h4>
+                                    <small>تذاكر اليوم</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- نصائح للاستخدام -->
+                    <div class="row">
+                        <div class="col-12">
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle me-2"></i>
+                                <strong>نصائح للاستخدام:</strong>
+                                <ul class="mb-0 mt-2">
+                                    <li>ابدأ بكتابة اسم المريض أو رقم الهاتف في مربع البحث أعلاه</li>
+                                    <li>ستظهر النتائج تلقائياً بعد كتابة حرفين على الأقل</li>
+                                    <li>انقر على "إنشاء تذكرة" بجانب اسم المريض المطلوب</li>
+                                    <li>إذا لم تجد المريض، يمكنك تسجيله كمريض جديد</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.avatar-circle {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    font-weight: bold;
+}
+
+.bg-gradient-primary {
+    background: linear-gradient(45deg, #007bff, #0056b3);
+}
+
+.bg-gradient-success {
+    background: linear-gradient(45deg, #28a745, #1e7e34);
+}
+
+.bg-gradient-warning {
+    background: linear-gradient(45deg, #ffc107, #e0a800);
+}
+
+.bg-gradient-info {
+    background: linear-gradient(45deg, #17a2b8, #138496);
+}
+
+.card:hover {
+    transform: translateY(-2px);
+    transition: transform 0.2s;
+    box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+}
+
+.input-group-lg .form-control {
+    font-size: 1.1rem;
+}
+
+.list-group-item:hover {
+    background-color: #f8f9fa;
+}
+
+.patient-result:hover {
+    background-color: #e3f2fd !important;
+}
+
+#search-results {
+    border: 1px solid #dee2e6;
+    border-radius: 0.375rem;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    direction: rtl;
+}
+
+.create-ticket-btn:hover {
+    transform: translateY(-1px);
+}
+
+/* تحسين عرض النص العربي */
+.patient-result {
+    font-family: 'Cairo', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    direction: rtl;
+    text-align: right;
+}
+
+.patient-result h6 {
+    font-family: 'Cairo', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-weight: 600;
+    color: #2c3e50;
+    direction: rtl;
+    font-size: 1.1rem;
+}
+
+.patient-result p, .patient-result small {
+    font-family: 'Cairo', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    direction: rtl;
+}
+
+/* تحسين الخط العربي */
+#search-results * {
+    font-family: 'Cairo', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* تحسين وضوح النص */
+.patient-result h6 {
+    text-shadow: none;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+.patient-result {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+.patient-name {
+    font-weight: 600 !important;
+    color: #2c3e50 !important;
+    font-size: 1.1rem !important;
+    line-height: 1.4 !important;
+    text-rendering: optimizeLegibility;
+}
+
+/* تحسين عرض الخط العربي */
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap');
+
+#search-results {
+    font-family: 'Cairo', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* تحسين التباين */
+.patient-result h6 {
+    color: #1a202c !important;
+    font-weight: 600 !important;
+}
+
+/* تحسين مربع البحث */
+#live-search {
+    border: 2px solid #e9ecef;
+    transition: all 0.3s ease;
+    font-size: 1.1rem;
+    padding: 0.75rem 1rem;
+    font-family: 'Cairo', 'Segoe UI', sans-serif;
+}
+
+#live-search:focus {
+    border-color: #17a2b8;
+    box-shadow: 0 0 0 0.2rem rgba(23, 162, 184, 0.25);
+}
+
+.input-group-text {
+    border: 2px solid #17a2b8;
+    border-left: none;
+}
+
+.input-group .btn-outline-secondary {
+    border: 2px solid #e9ecef;
+    border-right: none;
+}
+
+.input-group .btn-outline-secondary:hover {
+    background-color: #6c757d;
+    border-color: #6c757d;
+    color: white;
+}
+
+#search-results {
+    border: 1px solid #dee2e6;
+    border-radius: 0.375rem;
+    font-family: 'Cairo', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    direction: rtl;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    background: white;
+}
+
+/* تحسين شكل مربع البحث العام */
+.search-container {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    padding: 2rem;
+    border-radius: 0.75rem;
+    margin-bottom: 2rem;
+    border: 1px solid #dee2e6;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.search-container:hover {
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    transition: box-shadow 0.3s ease;
+}
+
+.search-container .form-label {
+    font-size: 1.1rem;
+    margin-bottom: 0.75rem;
+}
+
+/* تحسين الأزرار */
+.btn-success.btn-lg {
+    padding: 0.75rem 1.5rem;
+    font-size: 1.1rem;
+    border-radius: 0.5rem;
+    box-shadow: 0 2px 4px rgba(40, 167, 69, 0.2);
+}
+
+.btn-success.btn-lg:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(40, 167, 69, 0.3);
+    transition: all 0.2s ease;
+}
+
+.list-group-item {
+    border-color: #e9ecef;
+    transition: all 0.2s ease;
+}
+
+.list-group-item:hover {
+    background-color: #f8f9fa;
+    border-color: #007bff;
+}
+
+/* تحسين عرض الأيقونات مع النص العربي */
+.fas {
+    margin-left: 0.25rem;
+    margin-right: 0.25rem;
+}
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('live-search');
+    const searchResults = document.getElementById('search-results');
+    let searchTimeout;
+
+    // تركيز على حقل البحث
+    if (searchInput) {
+        searchInput.focus();
+    }
+
+    // البحث المباشر
+    searchInput.addEventListener('input', function() {
+        const term = searchInput.value.trim();
+
+        // مسح المؤقت السابق
+        clearTimeout(searchTimeout);
+
+        // إخفاء النتائج إذا كان البحث فارغًا أو أقل من حرفين
+        if (!term || term.length < 2) {
+            searchResults.style.display = 'none';
+            return;
+        }
+
+        // تأخير الطلب لتحسين الأداء
+        searchTimeout = setTimeout(() => {
+            // استخدام API للبحث
+            fetch(`/secretary/api/search-patients-for-ticket?term=${encodeURIComponent(term)}`, {
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json; charset=utf-8'
+                }
+            })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();
+                })
+                .then(patients => {
+                    if (patients && patients.length > 0) {
+                        let resultsHTML = '<div class="list-group list-group-flush">';
+
+                        patients.forEach(patient => {
+                            // التأكد من وجود البيانات وتنظيفها
+                            const patientName = String(patient.full_name || 'غير محدد').trim();
+                            const patientPhone = String(patient.phone || 'غير محدد').trim();
+                            const firstLetter = patientName.charAt(0) || '؟';
+                            const birthDate = patient.birth_date || '';
+                            
+                            // طباعة للتأكد من البيانات (يمكن إزالتها لاحقاً)
+                            console.log('Patient data:', {
+                                name: patientName,
+                                phone: patientPhone,
+                                id: patient.id
+                            });
+                            
+                            resultsHTML += `
+                                <div class="list-group-item list-group-item-action patient-result" 
+                                     data-patient-id="${patient.id}" 
+                                     style="cursor: pointer; direction: rtl;">
+                                    <div class="d-flex align-items-center">
+                                        <div class="avatar-circle bg-info text-white me-3" style="width: 45px; height: 45px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 1.2rem;">
+                                            ${firstLetter}
+                                        </div>
+                                        <div class="flex-grow-1">
+                                            <div class="d-flex justify-content-between align-items-start">
+                                                <div style="direction: rtl; text-align: right;">
+                                                    <h6 class="mb-1 fw-bold patient-name" style="color: #2c3e50; font-size: 1.1rem; font-family: 'Cairo', sans-serif;">${patientName}</h6>
+                                                    <p class="mb-1 text-muted" style="font-size: 0.9rem; font-family: 'Cairo', sans-serif;">
+                                                        <i class="fas fa-phone me-1"></i><span dir="ltr">${patientPhone}</span>
+                                                    </p>
+                                                    ${birthDate ? `<small class="text-muted" style="font-size: 0.8rem; font-family: 'Cairo', sans-serif;"><i class="fas fa-birthday-cake me-1"></i>${birthDate}</small>` : ''}
+                                                    ${patient.gender ? `<small class="text-muted ms-2" style="font-size: 0.8rem; font-family: 'Cairo', sans-serif;"><i class="fas fa-user me-1"></i>${patient.gender === 'male' ? 'ذكر' : patient.gender === 'female' ? 'أنثى' : patient.gender}</small>` : ''}
+                                                </div>
+                                                <div class="text-end">
+                                                    <button class="btn btn-primary btn-sm create-ticket-btn" 
+                                                            data-patient-id="${patient.id}" 
+                                                            data-patient-name="${patientName}"
+                                                            style="font-size: 0.85rem; padding: 0.4rem 0.8rem;">
+                                                        <i class="fas fa-ticket-alt me-1"></i>إنشاء تذكرة
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>`;
+                        });
+
+                        resultsHTML += '</div>';
+                        searchResults.innerHTML = resultsHTML;
+                        searchResults.style.display = 'block';
+
+                        // إضافة مستمعي الأحداث للنتائج
+                        addResultEventListeners();
+                    } else {
+                        searchResults.innerHTML = `
+                            <div class="list-group">
+                                <div class="list-group-item text-center py-4" style="direction: rtl;">
+                                    <i class="fas fa-search fa-2x text-muted mb-2"></i>
+                                    <p class="mb-2" style="font-family: 'Cairo', 'Segoe UI', sans-serif; font-size: 1rem;">لا توجد نتائج مطابقة للبحث: "${term}"</p>
+                                    <a href="{{ url_for('secretary.new_patient') }}" class="btn btn-success btn-sm" style="font-family: 'Cairo', 'Segoe UI', sans-serif;">
+                                        <i class="fas fa-user-plus me-1"></i>تسجيل مريض جديد
+                                    </a>
+                                </div>
+                            </div>`;
+                        searchResults.style.display = 'block';
+                    }
+                })
+                .catch(error => {
+                    console.error('خطأ في البحث:', error);
+                    searchResults.innerHTML = `
+                        <div class="list-group">
+                            <div class="list-group-item text-danger text-center">
+                                <i class="fas fa-exclamation-triangle me-1"></i>حدث خطأ في البحث
+                            </div>
+                        </div>`;
+                    searchResults.style.display = 'block';
+                });
+        }, 300);
+    });
+
+    // إضافة مستمعي الأحداث للنتائج
+    function addResultEventListeners() {
+        // أزرار إنشاء التذكرة
+        document.querySelectorAll('.create-ticket-btn').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                const patientId = this.dataset.patientId;
+                const patientName = this.dataset.patientName;
+                
+                if (confirm(`هل تريد إنشاء تذكرة انتظار للمريض: ${patientName}؟`)) {
+                    // إظهار رسالة تحميل
+                    this.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>جاري الإنشاء...';
+                    this.disabled = true;
+                    
+                    // الانتقال لإنشاء التذكرة
+                    window.location.href = `/secretary/ticket/create/${patientId}`;
+                }
+            });
+        });
+
+        // النقر على النتيجة لعرض التفاصيل
+        document.querySelectorAll('.patient-result').forEach(result => {
+            result.addEventListener('click', function() {
+                const patientId = this.dataset.patientId;
+                window.location.href = `/secretary/patient/${patientId}`;
+            });
+        });
+    }
+
+    // إخفاء النتائج عند النقر خارجها
+    document.addEventListener('click', function(e) {
+        if (!searchInput.contains(e.target) && !searchResults.contains(e.target)) {
+            searchResults.style.display = 'none';
+        }
+    });
+
+    // إضافة تأثيرات للبطاقات
+    const cards = document.querySelectorAll('.card');
+    cards.forEach(card => {
+        card.addEventListener('mouseenter', function() {
+            this.style.boxShadow = '0 8px 25px rgba(0,0,0,0.15)';
+        });
+        card.addEventListener('mouseleave', function() {
+            this.style.boxShadow = '';
+        });
+    });
+});
+
+// دالة مسح البحث
+function clearSearch() {
+    const searchInput = document.getElementById('live-search');
+    const searchResults = document.getElementById('search-results');
+    
+    searchInput.value = '';
+    searchResults.style.display = 'none';
+    searchInput.focus();
+}
+</script>
+{% endblock %}

@@ -1,0 +1,142 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="card">
+        <div class="card-header bg-primary text-white">
+            <h1 class="mb-0">تفاصيل المريض</h1>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-8">
+                    <table class="table table-bordered">
+                        <tr>
+                            <th class="bg-light" style="width: 30%;">الاسم الكامل</th>
+                            <td>{{ patient.full_name }}</td>
+                        </tr>
+                        <tr>
+                            <th class="bg-light">رقم الهاتف</th>
+                            <td>{{ patient.phone }}</td>
+                        </tr>
+                        <tr>
+                            <th class="bg-light">تاريخ الميلاد</th>
+                            <td>{{ format_date(patient.birth_date) if patient.birth_date else 'غير محدد' }}</td>
+                        </tr>
+                        <tr>
+                            <th class="bg-light">العمر</th>
+                            <td>
+                            {% if patient.birth_date %}
+                                {% set today = get_current_date() %}
+                                {% set age = ((today - patient.birth_date).days // 365) %}
+                                {{ age }} سنة
+                            {% else %}
+                                غير محدد
+                            {% endif %}
+                            </td>
+                        </tr>
+                        <tr>
+                            <th class="bg-light">الجنس</th>
+                            <td>{{ "ذكر" if patient.gender == "male" else "أنثى" if patient.gender == "female" else "غير محدد" }}</td>
+                        </tr>
+                        <tr>
+                            <th class="bg-light">زمرة الدم</th>
+                            <td>{{ patient.blood_group if patient.blood_group else 'غير محدد' }}</td>
+                        </tr>
+                        <tr>
+                            <th class="bg-light">العنوان</th>
+                            <td>{{ patient.address if patient.address else 'غير محدد' }}</td>
+                        </tr>
+                        <tr>
+                            <th class="bg-light">تاريخ التسجيل</th>
+                            <td>{{ format_datetime(patient.created_at) if patient.created_at else 'غير محدد' }}</td>
+                        </tr>
+                    </table>
+                </div>
+                <div class="col-md-4">
+                    <div class="d-grid gap-2">
+                        <a href="{{ url_for('secretary.edit_patient', patient_id=patient.id) }}" class="btn btn-warning mb-2">
+                            <i class="fas fa-edit"></i> تعديل بيانات المريض
+                        </a>
+                        <a href="{{ url_for('secretary.create_ticket', patient_id=patient.id) }}" class="btn btn-success mb-2">
+                            <i class="fas fa-ticket-alt"></i> إنشاء تذكرة
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- سجل الزيارات السابقة -->
+    <div class="card mt-4">
+        <div class="card-header bg-info text-white">
+            <h2 class="mb-0">سجل الزيارات</h2>
+        </div>
+        <div class="card-body">
+            {% if patient.tickets %}
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>رقم التذكرة</th>
+                                <th>تاريخ الزيارة</th>
+                                <th>الحالة</th>
+                                <th>الإجراءات</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for ticket in patient.tickets|sort(attribute='created_at', reverse=True) %}
+                                <tr>
+                                    <td>{{ loop.index }}</td>
+                                    <td>{{ ticket.number }}</td>
+                                    <td>{{ format_datetime(ticket.created_at) if ticket.created_at else 'غير محدد' }}</td>
+                                    <td>
+                                        {% if ticket.status == 'waiting' %}
+                                            <span class="badge bg-warning">في الانتظار</span>
+                                        {% elif ticket.status == 'called' %}
+                                            <span class="badge bg-primary">تم النداء</span>
+                                        {% elif ticket.status == 'examined' %}
+                                            <span class="badge bg-success">تم الفحص</span>
+                                        {% elif ticket.status == 'cancelled' %}
+                                            <span class="badge bg-danger">ملغاة</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">{{ ticket.status }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if ticket.visit %}
+                                            <a href="#" class="btn btn-sm btn-info">
+                                                <i class="fas fa-file-medical"></i> عرض السجل الطبي
+                                            </a>
+                                        {% else %}
+                                            <span class="text-muted">لا يوجد سجل طبي</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="alert alert-info">
+                    لا توجد زيارات سابقة لهذا المريض
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="mt-4">
+        <a href="{{ url_for('secretary.list_patients') }}" class="btn btn-secondary">
+            <i class="fas fa-arrow-right"></i> العودة لقائمة المرضى
+        </a>
+    </div>
+</div>
+{% endblock content %}
+
+{% block additional_scripts %}
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        // أي كود جافا سكريبت إضافي لصفحة التفاصيل يمكن إضافته هنا
+    });
+</script>
+{% endblock additional_scripts %}

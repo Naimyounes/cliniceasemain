@@ -1,0 +1,104 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8 mx-auto">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">{{ legend }}</h4>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="">
+                        {{ form.hidden_tag() }}
+                        <fieldset class="form-group">
+                            <div class="form-group mb-3">
+                                {{ form.full_name.label(class="form-control-label") }}
+                                {% if form.full_name.errors %}
+                                    {{ form.full_name(class="form-control is-invalid") }}
+                                    <div class="invalid-feedback">
+                                        {% for error in form.full_name.errors %}
+                                            <span>{{ error }}</span>
+                                        {% endfor %}
+                                    </div>
+                                {% else %}
+                                    {{ form.full_name(class="form-control") }}
+                                {% endif %}
+                            </div>
+                            <div class="form-group mb-3">
+                                {{ form.phone.label(class="form-control-label") }}
+                                {% if form.phone.errors %}
+                                    {{ form.phone(class="form-control is-invalid") }}
+                                    <div class="invalid-feedback">
+                                        {% for error in form.phone.errors %}
+                                            <span>{{ error }}</span>
+                                        {% endfor %}
+                                    </div>
+                                {% else %}
+                                    {{ form.phone(class="form-control") }}
+                                {% endif %}
+                            </div>
+                            <div class="form-group mb-3">
+                                {{ form.birth_date.label(class="form-control-label") }}
+                                {% if form.birth_date.errors %}
+                                    {{ form.birth_date(class="form-control is-invalid", type="date") }}
+                                    <div class="invalid-feedback">
+                                        {% for error in form.birth_date.errors %}
+                                            <span>{{ error }}</span>
+                                        {% endfor %}
+                                    </div>
+                                {% else %}
+                                    {{ form.birth_date(class="form-control", type="date") }}
+                                {% endif %}
+                            </div>
+                            <div class="form-group mb-3">
+                                {{ form.gender.label(class="form-control-label") }}
+                                {% if form.gender.errors %}
+                                    {{ form.gender(class="form-select is-invalid") }}
+                                    <div class="invalid-feedback">
+                                        {% for error in form.gender.errors %}
+                                            <span>{{ error }}</span>
+                                        {% endfor %}
+                                    </div>
+                                {% else %}
+                                    {{ form.gender(class="form-select") }}
+                                {% endif %}
+                            </div>
+                            <div class="form-group mb-3">
+                                {{ form.blood_group.label(class="form-control-label") }}
+                                {% if form.blood_group.errors %}
+                                    {{ form.blood_group(class="form-select is-invalid") }}
+                                    <div class="invalid-feedback">
+                                        {% for error in form.blood_group.errors %}
+                                            <span>{{ error }}</span>
+                                        {% endfor %}
+                                    </div>
+                                {% else %}
+                                    {{ form.blood_group(class="form-select") }}
+                                {% endif %}
+                            </div>
+                            <div class="form-group mb-3">
+                                {{ form.address.label(class="form-control-label") }}
+                                {% if form.address.errors %}
+                                    {{ form.address(class="form-control is-invalid") }}
+                                    <div class="invalid-feedback">
+                                        {% for error in form.address.errors %}
+                                            <span>{{ error }}</span>
+                                        {% endfor %}
+                                    </div>
+                                {% else %}
+                                    {{ form.address(class="form-control") }}
+                                {% endif %}
+                            </div>
+                        </fieldset>
+                        <div class="form-group mt-4">
+                            <button class="btn btn-primary" type="submit">حفظ</button>
+                            <a href="{{ url_for('secretary.dashboard') }}" class="btn btn-secondary">إلغاء</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock content %}

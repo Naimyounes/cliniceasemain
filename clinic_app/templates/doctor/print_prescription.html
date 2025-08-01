@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="fr" dir="ltr">
+<head>
+    <meta charset="UTF-8">
+    <title>Ordonnance - {{ visit.patient.full_name }}</title>
+    <style>
+        @page {
+            size: A5;
+            margin: 20mm;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            font-size: 13px;
+            color: #000;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 100%;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .header h2 {
+            margin-bottom: 5px;
+        }
+
+        .header .open-days {
+            font-size: 12px;
+        }
+
+        .details {
+            margin-bottom: 20px;
+        }
+
+        .details div {
+            margin-bottom: 5px;
+        }
+
+        .ord-title {
+            text-align: center;
+            font-weight: bold;
+            font-size: 16px;
+            margin-bottom: 20px;
+            text-decoration: underline;
+        }
+
+        .medications ol {
+            padding-left: 20px;
+        }
+
+        .medications li {
+            margin-bottom: 15px;
+        }
+
+        .footer {
+            margin-top: 30px;
+            text-align: left;
+            font-size: 13px;
+        }
+
+        @media print {
+            .no-print {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="no-print" style="text-align:center; margin-bottom:20px;">
+        <button onclick="window.print()">🖨️ طباعة</button>
+    </div>
+
+    <div class="container">
+        <div class="header">
+            <h2>cabinet Dentaire Taleb</h2>
+            <div class="open-days">7/7j</div>
+        </div>
+
+        <div class="details">
+            <div>Oran le : {{ prescription.created_at.strftime('%d/%m/%Y') }}</div>
+            <div>Nom : {{ visit.patient.last_name|upper }}</div>
+            <div>Prénoms : {{ visit.patient.first_name|capitalize }}</div>
+            <div>Age : {{ visit.patient.age }} an(s)</div>
+        </div>
+
+        <div class="ord-title">ORDONNANCE</div>
+
+        <div class="medications">
+            <ol>
+                {% for med in prescription.prescription_medications %}
+                <li>
+                    {{ med.medication.name|upper }} {{ med.medication.dosage }}
+                    <br>
+                    {{ med.instructions }}
+                </li>
+                {% endfor %}
+            </ol>
+        </div>
+    </div>
+</body>
+</html>

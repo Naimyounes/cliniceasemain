@@ -1,0 +1,176 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>تفاصيل الوصفة الطبية</h1>
+        <div>
+            <a href="{{ url_for('doctor.view_prescription_pdf', prescription_id=prescription.id) }}" class="btn btn-primary me-2" target="_blank">
+                <i class="fas fa-file-pdf"></i> عرض PDF
+            </a>
+            <a href="{{ url_for('doctor.print_prescription', prescription_id=prescription.id) }}" class="btn btn-success me-2" target="_blank">
+                <i class="fas fa-print"></i> طباعة
+            </a>
+            <a href="{{ url_for('doctor.regenerate_prescription_pdf', prescription_id=prescription.id) }}" class="btn btn-warning me-2" onclick="return confirm('هل تريد إعادة إنشاء ملف PDF؟ سيتم حذف الملف القديم.')">
+                <i class="fas fa-sync-alt"></i> إعادة إنشاء PDF
+            </a>
+            <a href="{{ url_for('doctor.view_visit', visit_id=visit.id) }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> العودة للزيارة
+            </a>
+        </div>
+    </div>
+
+    <!-- معلومات المريض -->
+    <div class="card mb-4">
+        <div class="card-header bg-info text-white">
+            <h4>معلومات المريض</h4>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <table class="table table-borderless">
+                        <tr>
+                            <th width="40%">الاسم الكامل:</th>
+                            <td>{{ visit.patient.full_name }}</td>
+                        </tr>
+                        <tr>
+                            <th>رقم الهاتف:</th>
+                            <td>{{ visit.patient.phone }}</td>
+                        </tr>
+                        <tr>
+                            <th>تاريخ الميلاد:</th>
+                            <td>{{ visit.patient.birth_date.strftime('%Y-%m-%d') if visit.patient.birth_date else 'غير محدد' }}</td>
+                        </tr>
+                    </table>
+                </div>
+                <div class="col-md-6">
+                    <table class="table table-borderless">
+                        <tr>
+                            <th width="40%">الجنس:</th>
+                            <td>{{ visit.patient.gender if visit.patient.gender else 'غير محدد' }}</td>
+                        </tr>
+                        <tr>
+                            <th>زمرة الدم:</th>
+                            <td>{{ visit.patient.blood_group if visit.patient.blood_group else 'غير محدد' }}</td>
+                        </tr>
+                        <tr>
+                            <th>تاريخ الزيارة:</th>
+                            <td>{{ visit.date.strftime('%Y-%m-%d %H:%M') }}</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- تفاصيل الزيارة -->
+    <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+            <h4>تفاصيل الزيارة</h4>
+        </div>
+        <div class="card-body">
+            <div class="row mb-3">
+                <div class="col-md-12">
+                    <h5 class="border-bottom pb-2">التشخيص</h5>
+                    <p>{{ visit.diagnosis or 'لم يتم تسجيل تشخيص' }}</p>
+                </div>
+            </div>
+            <div class="row mb-3">
+                <div class="col-md-12">
+                    <h5 class="border-bottom pb-2">العلاج</h5>
+                    <p>{{ visit.treatment or 'لم يتم تسجيل علاج' }}</p>
+                </div>
+            </div>
+            {% if visit.notes %}
+            <div class="row">
+                <div class="col-md-12">
+                    <h5 class="border-bottom pb-2">ملاحظات</h5>
+                    <p>{{ visit.notes }}</p>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- الوصفة الطبية -->
+    <div class="card mb-4">
+        <div class="card-header bg-success text-white">
+            <h4>الوصفة الطبية</h4>
+            <small>تاريخ الإنشاء: {{ prescription.created_at.strftime('%Y-%m-%d %H:%M') }}</small>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped table-bordered">
+                    <thead class="table-dark">
+                        <tr>
+                            <th width="5%">#</th>
+                            <th width="35%">الدواء</th>
+                            <th width="20%">الكمية/المدة</th>
+                            <th width="40%">التعليمات</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for pm in prescription.prescription_medications %}
+                        <tr>
+                            <td class="text-center">{{ loop.index }}</td>
+                            <td>
+                                <strong>{{ pm.medication.name }}</strong>
+                                {% if pm.medication.dosage %}
+                                    <br><small class="text-muted">{{ pm.medication.dosage }}</small>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if pm.quantity %}
+                                    <span class="badge bg-info fs-6">{{ pm.quantity }}</span>
+                                {% else %}
+                                    <span class="text-muted">غير محدد</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ pm.instructions }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            {% if prescription.prescription_medications|length == 0 %}
+            <div class="alert alert-warning text-center">
+                <h5>لا توجد أدوية في هذه الوصفة</h5>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- معلومات الطبيب -->
+    <div class="card mb-4">
+        <div class="card-header bg-dark text-white">
+            <h4>معلومات الطبيب</h4>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <p><strong>اسم الطبيب:</strong> Dr. {{ visit.doctor.username }}</p>
+                </div>
+                <div class="col-md-6">
+                    <p><strong>تاريخ إصدار الوصفة:</strong> {{ prescription.created_at.strftime('%Y-%m-%d') }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="text-center">
+        <a href="{{ url_for('doctor.view_prescription_pdf', prescription_id=prescription.id) }}" class="btn btn-primary btn-lg me-3" target="_blank">
+            <i class="fas fa-file-pdf"></i> عرض PDF
+        </a>
+        <a href="{{ url_for('doctor.print_prescription', prescription_id=prescription.id) }}" class="btn btn-success btn-lg me-3" target="_blank">
+            <i class="fas fa-print"></i> طباعة الوصفة
+        </a>
+        <a href="{{ url_for('doctor.regenerate_prescription_pdf', prescription_id=prescription.id) }}" class="btn btn-warning btn-lg me-3" onclick="return confirm('هل تريد إعادة إنشاء ملف PDF؟ سيتم حذف الملف القديم.')">
+            <i class="fas fa-sync-alt"></i> إعادة إنشاء PDF
+        </a>
+        <a href="{{ url_for('doctor.view_visit', visit_id=visit.id) }}" class="btn btn-secondary btn-lg">
+            <i class="fas fa-arrow-left"></i> العودة للزيارة
+        </a>
+    </div>
+</div>
+{% endblock content %}

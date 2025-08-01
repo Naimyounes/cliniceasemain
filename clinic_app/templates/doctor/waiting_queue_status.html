@@ -1,0 +1,188 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1><i class="fas fa-list-ul me-2"></i>حالة قائمة الانتظار</h1>
+        <div>
+            <a href="{{ url_for('doctor.dashboard') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left me-1"></i>العودة للوحة التحكم
+            </a>
+        </div>
+    </div>
+
+    <!-- المريض الحالي -->
+    {% if called_ticket %}
+    <div class="card mb-4 border-primary">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">
+                <i class="fas fa-user-md me-2"></i>المريض الحالي
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <div class="d-flex align-items-center">
+                        <div class="avatar-circle bg-primary text-white me-3">
+                            {{ called_ticket.patient.full_name[0] }}
+                        </div>
+                        <div>
+                            <h4 class="mb-1">{{ called_ticket.patient.full_name }}</h4>
+                            <p class="text-muted mb-0">
+                                <i class="fas fa-phone me-1"></i>{{ called_ticket.patient.phone }}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4 text-center">
+                    {% if called_ticket.priority == 1 %}
+                        <span class="badge bg-warning text-dark fs-6 px-3 py-2">
+                            <i class="fas fa-star me-1"></i>{{ called_ticket.display_number }} - أولوية
+                        </span>
+                    {% else %}
+                        <span class="badge bg-primary fs-6 px-3 py-2">
+                            رقم {{ called_ticket.display_number }}
+                        </span>
+                    {% endif %}
+                    <br><small class="text-muted mt-2 d-block">
+                        مستدعى منذ: {{ called_ticket.created_at.strftime('%H:%M') }}
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="row">
+        <!-- تذاكر الأولوية -->
+        <div class="col-lg-6 mb-4">
+            <div class="card border-warning">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="mb-0">
+                        <i class="fas fa-star me-2"></i>تذاكر الأولوية (المواعيد)
+                        <span class="badge bg-dark ms-2">{{ priority_tickets|length }}</span>
+                    </h5>
+                </div>
+                <div class="card-body p-0">
+                    {% if priority_tickets %}
+                        <div class="list-group list-group-flush">
+                            {% for ticket in priority_tickets %}
+                                <div class="list-group-item d-flex justify-content-between align-items-center">
+                                    <div class="d-flex align-items-center">
+                                        <span class="badge bg-warning text-dark rounded-pill me-2">{{ ticket.display_number }}</span>
+                                        <div>
+                                            <div class="fw-bold">{{ ticket.patient.full_name }}</div>
+                                            <small class="text-muted">
+                                                وصل: {{ ticket.created_at.strftime('%H:%M') }}
+                                                {% if ticket.appointment %}
+                                                    | موعد: {{ ticket.appointment.appointment_date.strftime('%H:%M') }}
+                                                {% endif %}
+                                            </small>
+                                        </div>
+                                    </div>
+                                    <i class="fas fa-star text-warning"></i>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="text-center py-4">
+                            <i class="fas fa-star fa-2x text-muted mb-2"></i>
+                            <p class="text-muted mb-0">لا توجد تذاكر أولوية</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- التذاكر العادية -->
+        <div class="col-lg-6 mb-4">
+            <div class="card border-primary">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-users me-2"></i>التذاكر العادية
+                        <span class="badge bg-light text-primary ms-2">{{ regular_tickets|length }}</span>
+                    </h5>
+                </div>
+                <div class="card-body p-0">
+                    {% if regular_tickets %}
+                        <div class="list-group list-group-flush" style="max-height: 400px; overflow-y: auto;">
+                            {% for ticket in regular_tickets %}
+                                <div class="list-group-item d-flex justify-content-between align-items-center">
+                                    <div class="d-flex align-items-center">
+                                        <span class="badge bg-primary rounded-pill me-2">{{ ticket.display_number }}</span>
+                                        <div>
+                                            <div class="fw-bold">{{ ticket.patient.full_name }}</div>
+                                            <small class="text-muted">وصل: {{ ticket.created_at.strftime('%H:%M') }}</small>
+                                        </div>
+                                    </div>
+                                    <i class="fas fa-clock text-muted"></i>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="text-center py-4">
+                            <i class="fas fa-users fa-2x text-muted mb-2"></i>
+                            <p class="text-muted mb-0">لا توجد تذاكر عادية</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- أزرار التحكم -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-cogs me-2"></i>إجراءات سريعة
+                    </h5>
+                </div>
+                <div class="card-body text-center">
+                    {% if waiting_tickets %}
+                        <form method="POST" action="{{ url_for('doctor.call_next_patient') }}" class="d-inline me-3">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                            <button type="submit" class="btn btn-success btn-lg">
+                                <i class="fas fa-bullhorn me-2"></i>استدعاء التالي
+                            </button>
+                        </form>
+                        
+                        {% set next_ticket = waiting_tickets[0] %}
+                        <div class="mt-3">
+                            <small class="text-muted">
+                                التالي: 
+                                {% if next_ticket.priority == 1 %}
+                                    <span class="badge bg-warning text-dark">{{ next_ticket.display_number }}</span>
+                                    {{ next_ticket.patient.full_name }} (أولوية - لديه موعد)
+                                {% else %}
+                                    <span class="badge bg-primary">{{ next_ticket.display_number }}</span>
+                                    {{ next_ticket.patient.full_name }}
+                                {% endif %}
+                            </small>
+                        </div>
+                    {% else %}
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            لا توجد تذاكر في قائمة الانتظار
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.avatar-circle {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    font-weight: bold;
+}
+</style>
+{% endblock %}

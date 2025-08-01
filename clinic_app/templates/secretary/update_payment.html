@@ -1,0 +1,93 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    <h3 class="mb-0">
+                        <i class="fas fa-money-bill-wave"></i> تحديث حالة الدفع
+                    </h3>
+                </div>
+                <div class="card-body">
+                    <!-- معلومات الزيارة -->
+                    <div class="alert alert-info">
+                        <h5><i class="fas fa-info-circle"></i> معلومات الزيارة</h5>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <strong>المريض:</strong> {{ visit.patient.full_name }}<br>
+                                <strong>رقم الهاتف:</strong> {{ visit.patient.phone }}<br>
+                                <strong>تاريخ الزيارة:</strong> {{ format_datetime(visit.date) }}
+                            </div>
+                            <div class="col-md-6">
+                                <strong>الطبيب:</strong> د. {{ visit.doctor.username }}<br>
+                                <strong>مبلغ الزيارة:</strong> {{ visit.price if visit.price else 'غير محدد' }} ل.س<br>
+                                <strong>الحالة الحالية:</strong> 
+                                <span class="badge {% if visit.payment_status == 'مدفوع' %}bg-success{% elif visit.payment_status == 'غير مدفوع' %}bg-danger{% else %}bg-warning{% endif %}">
+                                    {{ visit.payment_status }}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- نموذج تحديث الدفع -->
+                    <form method="POST">
+                        {{ form.hidden_tag() }}
+                        
+                        <div class="mb-3">
+                            {{ form.payment_status.label(class="form-label") }}
+                            {{ form.payment_status(class="form-select") }}
+                            {% if form.payment_status.errors %}
+                                <div class="text-danger">
+                                    {% for error in form.payment_status.errors %}
+                                        <small>{{ error }}</small>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                            <div class="form-text">
+                                <i class="fas fa-info-circle"></i> اختر حالة الدفع الجديدة
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-between">
+                            <a href="{{ url_for('secretary.payments') }}" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left"></i> إلغاء
+                            </a>
+                            {{ form.submit(class="btn btn-success") }}
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- تفاصيل إضافية عن الزيارة -->
+            <div class="card mt-4">
+                <div class="card-header bg-light">
+                    <h5>تفاصيل الزيارة</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6 class="border-bottom pb-1">التشخيص</h6>
+                            <p>{{ visit.diagnosis[:150] if visit.diagnosis else 'لم يتم تسجيل تشخيص' }}{% if visit.diagnosis and visit.diagnosis|length > 150 %}...{% endif %}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="border-bottom pb-1">العلاج</h6>
+                            <p>{{ visit.treatment[:150] if visit.treatment else 'لم يتم تسجيل علاج' }}{% if visit.treatment and visit.treatment|length > 150 %}...{% endif %}</p>
+                        </div>
+                    </div>
+                    
+                    {% if visit.notes %}
+                    <div class="row mt-3">
+                        <div class="col-12">
+                            <h6 class="border-bottom pb-1">ملاحظات</h6>
+                            <p>{{ visit.notes }}</p>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock content %}

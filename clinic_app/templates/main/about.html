@@ -1,0 +1,174 @@
+{% extends "layout.html" %}
+{% block extra_head %}
+<style>
+    body {
+        background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+        background-attachment: fixed;
+        min-height: 100vh;
+    }
+    .about-container {
+        margin-top: 5%;
+        margin-bottom: 5%;
+    }
+    .about-card {
+        border-radius: 20px;
+        box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+        backdrop-filter: blur(10px);
+        background-color: rgba(255, 255, 255, 0.9);
+        transition: all 0.3s ease;
+    }
+    .about-card:hover {
+        transform: translateY(-10px);
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+    }
+    .about-header {
+        background: linear-gradient(135deg, #4f46e5 0%, #3730a3 100%);
+        padding: 30px;
+        text-align: center;
+        border-radius: 20px 20px 0 0;
+    }
+    .about-header h1 {
+        color: white;
+        font-weight: 700;
+        margin-bottom: 10px;
+        font-size: 2.5rem;
+    }
+    .about-header p {
+        color: rgba(255, 255, 255, 0.8);
+        font-size: 1.1rem;
+    }
+    .about-body {
+        padding: 40px;
+    }
+    .feature-item {
+        background-color: white;
+        border-radius: 15px;
+        padding: 20px;
+        margin-bottom: 20px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        transition: all 0.3s ease;
+        text-align: right;
+    }
+    .feature-item:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+    }
+    .feature-icon {
+        font-size: 2.5rem;
+        color: #4f46e5;
+        margin-bottom: 15px;
+    }
+    .about-footer {
+        padding: 20px;
+        background-color: rgba(0, 0, 0, 0.03);
+        border-top: 1px solid rgba(0, 0, 0, 0.05);
+        text-align: center;
+    }
+    .home-link {
+        margin-top: 20px;
+        display: inline-block;
+        color: rgba(255, 255, 255, 0.8);
+        transition: all 0.3s ease;
+    }
+    .home-link:hover {
+        color: white;
+        transform: translateY(-2px);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container about-container">
+    <div class="row justify-content-center">
+        <div class="col-md-10">
+            <div class="about-card animate__animated animate__fadeIn">
+                <div class="about-header">
+                    <h1><i class="fas fa-hospital-user"></i> ClinicEase</h1>
+                    <p>نظام إدارة العيادات الطبية الشامل</p>
+
+                </div>
+                
+                <div class="about-body">
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <h3 class="text-center mb-4">عن التطبيق</h3>
+                            <p class="lead text-center">
+                                ClinicEase هو نظام متكامل لإدارة العيادات الطبية، يهدف إلى تسهيل عمل الأطباء والسكرتارية وتحسين تجربة المرضى.
+                            </p>
+                        </div>
+                    </div>
+                    
+                    <h4 class="text-center mb-4">المميزات الرئيسية</h4>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="feature-item">
+                                <div class="feature-icon">
+                                    <i class="fas fa-user-md"></i>
+                                </div>
+                                <h5>إدارة المرضى</h5>
+                                <p>تسجيل بيانات المرضى الشخصية والطبية بشكل آمن وسهل الوصول.</p>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="feature-item">
+                                <div class="feature-icon">
+                                    <i class="fas fa-calendar-check"></i>
+                                </div>
+                                <h5>جدولة المواعيد</h5>
+                                <p>إدارة مواعيد العيادة بكفاءة مع إمكانية إرسال تذكيرات للمرضى.</p>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="feature-item">
+                                <div class="feature-icon">
+                                    <i class="fas fa-file-medical"></i>
+                                </div>
+                                <h5>السجلات الطبية</h5>
+                                <p>تسجيل وتتبع التاريخ الطبي للمرضى والزيارات السابقة والتشخيصات.</p>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="feature-item">
+                                <div class="feature-icon">
+                                    <i class="fas fa-pills"></i>
+                                </div>
+                                <h5>إدارة الوصفات الطبية</h5>
+                                <p>إنشاء وطباعة الوصفات الطبية بسهولة مع قاعدة بيانات للأدوية.</p>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="feature-item">
+                                <div class="feature-icon">
+                                    <i class="fas fa-tv"></i>
+                                </div>
+                                <h5>شاشة انتظار المرضى</h5>
+                                <p>عرض قائمة المرضى المنتظرين في غرفة الانتظار بشكل منظم.</p>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="feature-item">
+                                <div class="feature-icon">
+                                    <i class="fas fa-chart-line"></i>
+                                </div>
+                                <h5>تقارير وإحصائيات</h5>
+                                <p>عرض تقارير مفصلة عن أداء العيادة والإيرادات وعدد المرضى.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="about-footer">
+                    <a href="{{ url_for('main.home') }}" class="btn btn-primary">
+                        <i class="fas fa-home"></i> العودة للصفحة الرئيسية
+                    </a>
+                </div>
+            </div>
+            <div class="text-center mt-4">
+                <a href="{{ url_for('main.waiting_room') }}" class="home-link" target="_blank">
+                    <i class="fas fa-tv me-1"></i> عرض شاشة الانتظار
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,202 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>المواعيد الطبية</h1>
+        <div>
+            <span class="badge bg-info fs-6">إجمالي المواعيد: {{ appointments.total }}</span>
+        </div>
+    </div>
+
+    <!-- فلتر الحالة -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <label class="form-label">فلترة حسب الحالة:</label>
+                    <select class="form-select" id="status-filter" onchange="filterAppointments()">
+                        <option value="all" {{ 'selected' if status_filter == 'all' else '' }}>جميع المواعيد</option>
+                        <option value="مجدول" {{ 'selected' if status_filter == 'مجدول' else '' }}>مجدول</option>
+                        <option value="مكتمل" {{ 'selected' if status_filter == 'مكتمل' else '' }}>مكتمل</option>
+                        <option value="ملغي" {{ 'selected' if status_filter == 'ملغي' else '' }}>ملغي</option>
+                        <option value="فائت" {{ 'selected' if status_filter == 'فائت' else '' }}>فائت</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- قائمة المواعيد -->
+    <div class="card">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">المواعيد المجدولة</h5>
+        </div>
+        <div class="card-body">
+            {% if appointments.items %}
+                <div class="table-responsive">
+                    <table class="table table-hover table-striped">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>المريض</th>
+                                <th>تاريخ الموعد</th>
+                                <th>وقت الموعد</th>
+                                <th>الحالة</th>
+                                <th>ملاحظات</th>
+                                <th>الإجراءات</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for appointment in appointments.items %}
+                                <tr>
+                                    <td>{{ loop.index + (appointments.page - 1) * appointments.per_page }}</td>
+                                    <td>
+                                        <strong>{{ appointment.patient.full_name }}</strong><br>
+                                        <small class="text-muted">{{ appointment.patient.phone }}</small>
+                                    </td>
+                                    <td>{{ format_date(appointment.appointment_date) }}</td>
+                                    <td>{{ appointment.appointment_date.strftime('%H:%M') }}</td>
+                                    <td>
+                                        {% if appointment.status == 'مجدول' %}
+                                            <span class="badge bg-primary">مجدول</span>
+                                        {% elif appointment.status == 'مكتمل' %}
+                                            <span class="badge bg-success">مكتمل</span>
+                                        {% elif appointment.status == 'ملغي' %}
+                                            <span class="badge bg-danger">ملغي</span>
+                                        {% elif appointment.status == 'فائت' %}
+                                            <span class="badge bg-warning">فائت</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">{{ appointment.status }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if appointment.notes %}
+                                            <span title="{{ appointment.notes }}">
+                                                {{ appointment.notes[:30] }}{% if appointment.notes|length > 30 %}...{% endif %}
+                                            </span>
+                                        {% else %}
+                                            <span class="text-muted">لا توجد ملاحظات</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm" role="group">
+                                            <a href="{{ url_for('doctor.view_appointment', appointment_id=appointment.id) }}" 
+                                               class="btn btn-info" title="عرض التفاصيل">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                            {% if appointment.visit %}
+                                                <a href="{{ url_for('doctor.view_visit', visit_id=appointment.visit.id) }}" 
+                                                   class="btn btn-primary" title="عرض الزيارة">
+                                                    <i class="fas fa-file-medical"></i>
+                                                </a>
+                                            {% endif %}
+                                            {% if appointment.status == 'مجدول' %}
+                                                <button type="button" class="btn btn-success" 
+                                                        onclick="updateStatus({{ appointment.id }}, 'مكتمل')" 
+                                                        title="تحديد كمكتمل">
+                                                    <i class="fas fa-check"></i>
+                                                </button>
+                                                <button type="button" class="btn btn-warning" 
+                                                        onclick="updateStatus({{ appointment.id }}, 'فائت')" 
+                                                        title="تحديد كفائت">
+                                                    <i class="fas fa-times"></i>
+                                                </button>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- ترقيم الصفحات -->
+                <nav class="mt-4">
+                    <ul class="pagination justify-content-center">
+                        {% if appointments.has_prev %}
+                            <li class="page-item">
+                                <a class="page-link" href="{{ url_for('doctor.appointments', page=appointments.prev_num, status=status_filter) }}">السابق</a>
+                            </li>
+                        {% else %}
+                            <li class="page-item disabled">
+                                <span class="page-link">السابق</span>
+                            </li>
+                        {% endif %}
+
+                        {% for page_num in appointments.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+                            {% if page_num %}
+                                {% if appointments.page == page_num %}
+                                    <li class="page-item active">
+                                        <span class="page-link">{{ page_num }}</span>
+                                    </li>
+                                {% else %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="{{ url_for('doctor.appointments', page=page_num, status=status_filter) }}">{{ page_num }}</a>
+                                    </li>
+                                {% endif %}
+                            {% else %}
+                                <li class="page-item disabled">
+                                    <span class="page-link">...</span>
+                                </li>
+                            {% endif %}
+                        {% endfor %}
+
+                        {% if appointments.has_next %}
+                            <li class="page-item">
+                                <a class="page-link" href="{{ url_for('doctor.appointments', page=appointments.next_num, status=status_filter) }}">التالي</a>
+                            </li>
+                        {% else %}
+                            <li class="page-item disabled">
+                                <span class="page-link">التالي</span>
+                            </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+            {% else %}
+                <div class="alert alert-info">
+                    {% if status_filter != 'all' %}
+                        لا توجد مواعيد بحالة "{{ status_filter }}"
+                    {% else %}
+                        لا توجد مواعيد مجدولة حتى الآن
+                    {% endif %}
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="mt-4">
+        <a href="{{ url_for('doctor.dashboard') }}" class="btn btn-secondary">العودة للوحة التحكم</a>
+    </div>
+</div>
+
+<script>
+function filterAppointments() {
+    const status = document.getElementById('status-filter').value;
+    window.location.href = `{{ url_for('doctor.appointments') }}?status=${status}`;
+}
+
+function updateStatus(appointmentId, newStatus) {
+    if (confirm(`هل أنت متأكد من تحديث حالة الموعد إلى "${newStatus}"؟`)) {
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = `/doctor/appointment/${appointmentId}/update_status`;
+        
+        const statusInput = document.createElement('input');
+        statusInput.type = 'hidden';
+        statusInput.name = 'status';
+        statusInput.value = newStatus;
+        
+        const csrfInput = document.createElement('input');
+        csrfInput.type = 'hidden';
+        csrfInput.name = 'csrf_token';
+        csrfInput.value = '{{ csrf_token() }}';
+        
+        form.appendChild(statusInput);
+        form.appendChild(csrfInput);
+        document.body.appendChild(form);
+        form.submit();
+    }
+}
+</script>
+{% endblock content %}

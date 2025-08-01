@@ -1,0 +1,160 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="container">
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('doctor.dashboard') }}">لوحة التحكم</a></li>
+                    <li class="breadcrumb-item active">الوصفات المحددة مسبقاً</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h3 class="mb-0">إضافة وصفة محددة مسبقاً</h3>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="">
+                        {{ form.hidden_tag() }}
+                        <div class="row">
+                            <div class="col-md-8">
+                                <div class="form-group mb-3">
+                                    {{ form.name.label(class="form-control-label") }}
+                                    {{ form.name(class="form-control") }}
+                                    {% if form.name.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {% for error in form.name.errors %}
+                                                <span>{{ error }}</span>
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-md-4 d-flex align-items-end">
+                                <button type="submit" class="btn btn-success w-100">
+                                    <i class="fas fa-plus"></i> إضافة الوصفة
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header bg-info text-white">
+                    <h3 class="mb-0">قائمة الوصفات المحددة مسبقاً</h3>
+                </div>
+                <div class="card-body">
+                    {% if predefined_prescriptions %}
+                        {% for prescription in predefined_prescriptions %}
+                        <div class="card mb-3">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <h5 class="mb-0">{{ prescription.name }}</h5>
+                                <div>
+                                    <button class="btn btn-sm btn-primary" type="button" data-bs-toggle="collapse" data-bs-target="#prescription-{{ prescription.id }}" aria-expanded="false">
+                                        <i class="fas fa-eye"></i> عرض الأدوية
+                                    </button>
+                                    <form method="POST" action="{{ url_for('doctor.delete_predefined_prescription', predefined_prescription_id=prescription.id) }}" style="display: inline;" onsubmit="return confirm('هل أنت متأكد من حذف هذه الوصفة؟')">
+                                        <button type="submit" class="btn btn-sm btn-danger">
+                                            <i class="fas fa-trash"></i> حذف
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                            <div class="collapse" id="prescription-{{ prescription.id }}">
+                                <div class="card-body">
+                                    <h6>الأدوية المضافة:</h6>
+                                    {% if prescription.medications %}
+                                        <div class="table-responsive">
+                                            <table class="table table-sm table-bordered">
+                                                <thead>
+                                                    <tr>
+                                                        <th>الدواء</th>
+                                                        <th>الجرعة</th>
+                                                        <th>التعليمات</th>
+                                                        <th>الإجراءات</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {% for ppm in prescription.medications %}
+                                                    <tr>
+                                                        <td>{{ ppm.medication.name }}</td>
+                                                        <td>{{ ppm.medication.dosage }}</td>
+                                                        <td>{{ ppm.instructions or 'غير محدد' }}</td>
+                                                        <td>
+                                                            <form method="POST" action="{{ url_for('doctor.remove_medication_from_predefined', predefined_prescription_id=prescription.id, medication_id=ppm.medication.id) }}" style="display: inline;" onsubmit="return confirm('هل أنت متأكد من حذف هذا الدواء؟')">
+                                                                <button type="submit" class="btn btn-sm btn-danger">
+                                                                    <i class="fas fa-times"></i>
+                                                                </button>
+                                                            </form>
+                                                        </td>
+                                                    </tr>
+                                                    {% endfor %}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    {% else %}
+                                        <p class="text-muted">لا توجد أدوية مضافة لهذه الوصفة</p>
+                                    {% endif %}
+                                    
+                                    <hr>
+                                    <h6>إضافة دواء جديد:</h6>
+                                    <form method="POST" action="{{ url_for('doctor.add_medication_to_predefined', predefined_prescription_id=prescription.id) }}">
+                                        <div class="row">
+                                            <div class="col-md-4">
+                                                <select name="medication_id" class="form-select" required>
+                                                    <option value="">اختر الدواء</option>
+                                                    {% for medication in medications %}
+                                                    <option value="{{ medication.id }}">{{ medication.name }} ({{ medication.dosage }})</option>
+                                                    {% endfor %}
+                                                </select>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <input type="text" name="instructions" class="form-control" placeholder="التعليمات (اختياري)">
+                                            </div>
+                                            <div class="col-md-2">
+                                                <button type="submit" class="btn btn-success w-100">
+                                                    <i class="fas fa-plus"></i> إضافة
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="alert alert-info text-center">
+                            <i class="fas fa-info-circle fa-lg me-2"></i> لا توجد وصفات محددة مسبقاً
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock content %}
+
+{% block scripts %}
+<script>
+    // Get all medications for JavaScript use
+    const medications = [
+        {% for medication in medications %}
+        {
+            id: {{ medication.id }},
+            name: "{{ medication.name }}",
+            dosage: "{{ medication.dosage }}"
+        }{% if not loop.last %},{% endif %}
+        {% endfor %}
+    ];
+</script>
+{% endblock scripts %}

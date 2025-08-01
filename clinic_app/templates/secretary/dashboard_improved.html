@@ -1,0 +1,666 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="container-fluid px-3">
+    <!-- ترحيب وإحصائيات سريعة -->
+    <div class="row mb-3">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2 class="text-primary mb-1">مرحباً، {{ current_user.username }}</h2>
+                    <p class="text-muted mb-0">{{ get_arabic_date() }}</p>
+                </div>
+                <div class="text-end">
+                    <span class="badge bg-primary fs-6 px-3 py-2">
+                        <i class="fas fa-clock me-1"></i>
+                        <span id="current-time"></span>
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- الإحصائيات اليومية المحسنة -->
+    <div class="row mb-3">
+        <div class="col-xl-2 col-lg-3 col-md-4 col-6 mb-2">
+            <div class="card bg-gradient-primary text-white h-100">
+                <div class="card-body p-2">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="card-title text-white-50 mb-1 small">مرضى اليوم</h6>
+                            <h4 class="mb-0">{{ daily_stats.patients_today or 0 }}</h4>
+                        </div>
+                        <i class="fas fa-user-plus fa-lg"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-xl-2 col-lg-3 col-md-4 col-6 mb-2">
+            <div class="card bg-gradient-warning text-white h-100">
+                <div class="card-body p-2">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="card-title text-white-50 mb-1 small">في الانتظار</h6>
+                            <h4 class="mb-0">{{ waiting_tickets|length }}</h4>
+                        </div>
+                        <i class="fas fa-hourglass-half fa-lg"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-xl-2 col-lg-3 col-md-4 col-6 mb-2">
+            {% if last_unpaid_visit %}
+                <div class="card bg-gradient-orange text-white h-100 clickable-card" 
+                     onclick="markLastVisitAsPaid({{ last_unpaid_visit.id }})" 
+                     style="cursor: pointer;" 
+                     title="انقر لتحديد كمدفوع"
+                     id="unpaid-visit-card-{{ last_unpaid_visit.id }}">
+                    <div class="card-body p-2">
+                        <div class="text-center">
+                            <h6 class="card-title text-white-50 mb-1 small">آخر مريض غير مدفوع</h6>
+                            <h6 class="mb-1 text-white">{{ last_unpaid_visit.patient.full_name }}</h6>
+                            <h5 class="mb-2 text-white">
+                                {% if last_unpaid_visit.price %}
+                                    {{ last_unpaid_visit.price }} ل.س
+                                {% else %}
+                                    غير محدد
+                                {% endif %}
+                            </h5>
+                            <small class="text-white-75">
+                                <i class="fas fa-hand-pointer me-1"></i>انقر للتحديد كمدفوع
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            {% else %}
+                <div class="card bg-gradient-success text-white h-100">
+                    <div class="card-body p-2">
+                        <div class="text-center">
+                            <h6 class="card-title text-white-50 mb-1 small">آخر مريض غير مدفوع</h6>
+                            <div class="mb-2">
+                                <i class="fas fa-check-circle fa-2x text-white-75"></i>
+                            </div>
+                            <p class="mb-0 text-white-75">جميع المدفوعات محدثة</p>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+        
+        <div class="col-xl-2 col-lg-3 col-md-4 col-6 mb-2">
+            <div class="card bg-gradient-danger text-white h-100">
+                <div class="card-body p-2">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="card-title text-white-50 mb-1 small">مدفوعات مستحقة</h6>
+                            <h4 class="mb-0">{{ total_pending_amount or 0 }} <small>ريال</small></h4>
+                        </div>
+                        <i class="fas fa-exclamation-triangle fa-lg"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-2 col-lg-3 col-md-4 col-6 mb-2">
+            <div class="card bg-gradient-info text-white h-100">
+                <div class="card-body p-2">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="card-title text-white-50 mb-1 small">زيارات اليوم</h6>
+                            <h4 class="mb-0">{{ daily_stats.visits_today or 0 }}</h4>
+                        </div>
+                        <i class="fas fa-stethoscope fa-lg"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-2 col-lg-3 col-md-4 col-6 mb-2">
+            <div class="card bg-gradient-secondary text-white h-100">
+                <div class="card-body p-2">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="card-title text-white-50 mb-1 small">مرضى جدد</h6>
+                            <h4 class="mb-0">{{ recent_patients|length or 0 }}</h4>
+                        </div>
+                        <i class="fas fa-user-plus fa-lg"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- إجراءات سريعة شاملة -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">
+                        <i class="fas fa-bolt me-2"></i>جميع المهام والصلاحيات
+                    </h5>
+                </div>
+                <div class="card-body p-3">
+                    <!-- الصف الأول - إدارة المرضى -->
+                    <div class="row mb-3">
+                        <div class="col-12 mb-2">
+                            <h6 class="text-primary border-bottom pb-1 mb-2">
+                                <i class="fas fa-users me-1"></i>إدارة المرضى
+                            </h6>
+                        </div>
+                        <div class="col-xl-2 col-lg-3 col-md-4 col-6 mb-2">
+                            <a href="{{ url_for('secretary.new_patient') }}" class="btn btn-outline-primary w-100 btn-sm d-flex flex-column align-items-center py-2">
+                                <i class="fas fa-user-plus fa-lg mb-1"></i>
+                                <span class="small">تسجيل مريض جديد</span>
+                            </a>
+                        </div>
+                        <div class="col-xl-2 col-lg-3 col-md-4 col-6 mb-2">
+                            <a href="{{ url_for('secretary.list_patients') }}" class="btn btn-outline-success w-100 btn-sm d-flex flex-column align-items-center py-2">
+                                <i class="fas fa-users fa-lg mb-1"></i>
+                                <span class="small">قائمة المرضى</span>
+                            </a>
+                        </div>
+                        <div class="col-xl-2 col-lg-3 col-md-4 col-6 mb-2">
+                            <a href="{{ url_for('secretary.waiting_queue') }}" class="btn btn-outline-warning w-100 btn-sm d-flex flex-column align-items-center py-2 position-relative">
+                                <i class="fas fa-list-alt fa-lg mb-1"></i>
+                                <span class="small">إدارة قائمة الانتظار</span>
+                                {% if waiting_tickets|length > 0 %}
+                                    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-warning">
+                                        {{ waiting_tickets|length }}
+                                    </span>
+                                {% endif %}
+                            </a>
+                        </div>
+                        <div class="col-xl-2 col-lg-3 col-md-4 col-6 mb-2">
+                            <button type="button" class="btn btn-outline-primary w-100 btn-sm d-flex flex-column align-items-center py-2" onclick="searchPatient()">
+                                <i class="fas fa-search fa-lg mb-1"></i>
+                                <span class="small">البحث عن مريض</span>
+                            </button>
+                        </div>
+                        <div class="col-xl-2 col-lg-3 col-md-4 col-6 mb-2">
+                            <a href="{{ url_for('secretary.create_ticket_page') }}" class="btn btn-outline-success w-100 btn-sm d-flex flex-column align-items-center py-2">
+                                <i class="fas fa-ticket-alt fa-lg mb-1"></i>
+                                <span class="small">إنشاء تذكرة سريعة</span>
+                            </a>
+                        </div>
+                        <div class="col-xl-2 col-lg-3 col-md-4 col-6 mb-2">
+                            <a href="{{ url_for('secretary.create_appointment') }}" class="btn btn-outline-primary w-100 btn-sm d-flex flex-column align-items-center py-2">
+                                <i class="fas fa-calendar-plus fa-lg mb-1"></i>
+                                <span class="small">حجز موعد جديد</span>
+                            </a>
+                        </div>
+                        <div class="col-xl-2 col-lg-3 col-md-4 col-6 mb-2">
+                            <a href="{{ url_for('secretary.upcoming_appointments') }}" class="btn btn-outline-warning w-100 btn-sm d-flex flex-column align-items-center py-2">
+                                <i class="fas fa-phone fa-lg mb-1"></i>
+                                <span class="small">الاتصال بالمواعيد</span>
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- الصف الثالث - إدارة المدفوعات -->
+                    <div class="row mb-3">
+                        <div class="col-12 mb-2">
+                            <h6 class="text-danger border-bottom pb-1 mb-2">
+                                <i class="fas fa-money-bill-wave me-1"></i>إدارة المدفوعات
+                            </h6>
+                        </div>
+                        <div class="col-xl-2 col-lg-3 col-md-4 col-6 mb-2">
+                            <a href="{{ url_for('secretary.payments') }}" class="btn btn-outline-danger w-100 btn-sm d-flex flex-column align-items-center py-2 position-relative">
+                                <i class="fas fa-money-bill-wave fa-lg mb-1"></i>
+                                <span class="small">إدارة المدفوعات</span>
+                                {% if pending_payments|length > 0 %}
+                                    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                                        {{ pending_payments|length }}
+                                    </span>
+                                {% endif %}
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- الصف الثالث - تقارير وإحصائيات -->
+                    <div class="row mb-3">
+                        <div class="col-12 mb-2">
+                            <h6 class="text-success border-bottom pb-1 mb-2">
+                                <i class="fas fa-chart-line me-1"></i>التقارير والإحصائيات
+                            </h6>
+                        </div>
+                        <div class="col-xl-2 col-lg-3 col-md-4 col-6 mb-2">
+                            <button type="button" class="btn btn-outline-success w-100 btn-sm d-flex flex-column align-items-center py-2" onclick="showDailyReport()">
+                                <i class="fas fa-chart-bar fa-lg mb-1"></i>
+                                <span class="small">تقرير يومي</span>
+                            </button>
+                        </div>
+                        <div class="col-xl-2 col-lg-3 col-md-4 col-6 mb-2">
+                            <button type="button" class="btn btn-outline-info w-100 btn-sm d-flex flex-column align-items-center py-2" onclick="showPatientStats()">
+                                <i class="fas fa-users fa-lg mb-1"></i>
+                                <span class="small">إحصائيات المرضى</span>
+                            </button>
+                        </div>
+                        <div class="col-xl-2 col-lg-3 col-md-4 col-6 mb-2">
+                            <button type="button" class="btn btn-outline-warning w-100 btn-sm d-flex flex-column align-items-center py-2" onclick="showPaymentReport()">
+                                <i class="fas fa-money-check-alt fa-lg mb-1"></i>
+                                <span class="small">تقرير المدفوعات</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- الصف الرابع - أدوات إضافية -->
+                    <div class="row">
+                        <div class="col-12 mb-2">
+                            <h6 class="text-secondary border-bottom pb-1 mb-2">
+                                <i class="fas fa-tools me-1"></i>أدوات إضافية
+                            </h6>
+                        </div>
+                        <div class="col-xl-2 col-lg-3 col-md-4 col-6 mb-2">
+                            <button type="button" class="btn btn-outline-dark w-100 btn-sm d-flex flex-column align-items-center py-2" onclick="location.reload()">
+                                <i class="fas fa-sync-alt fa-lg mb-1"></i>
+                                <span class="small">تحديث البيانات</span>
+                            </button>
+                        </div>
+                        <div class="col-xl-2 col-lg-3 col-md-4 col-6 mb-2">
+                            <button type="button" class="btn btn-outline-primary w-100 btn-sm d-flex flex-column align-items-center py-2" onclick="printDashboard()">
+                                <i class="fas fa-print fa-lg mb-1"></i>
+                                <span class="small">طباعة التقرير</span>
+                            </button>
+                        </div>
+                        <div class="col-xl-2 col-lg-3 col-md-4 col-6 mb-2">
+                            <button type="button" class="btn btn-outline-info w-100 btn-sm d-flex flex-column align-items-center py-2" onclick="exportData()">
+                                <i class="fas fa-download fa-lg mb-1"></i>
+                                <span class="small">تصدير البيانات</span>
+                            </button>
+                        </div>
+                        <div class="col-xl-2 col-lg-3 col-md-4 col-6 mb-2">
+                            <button type="button" class="btn btn-outline-warning w-100 btn-sm d-flex flex-column align-items-center py-2" onclick="showHelp()">
+                                <i class="fas fa-question-circle fa-lg mb-1"></i>
+                                <span class="small">المساعدة</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+<style>
+.bg-gradient-primary {
+    background: linear-gradient(45deg, #007bff, #0056b3);
+}
+.bg-gradient-success {
+    background: linear-gradient(45deg, #28a745, #1e7e34);
+}
+.bg-gradient-warning {
+    background: linear-gradient(45deg, #ffc107, #e0a800);
+}
+.bg-gradient-danger {
+    background: linear-gradient(45deg, #dc3545, #c82333);
+}
+.bg-gradient-info {
+    background: linear-gradient(45deg, #17a2b8, #138496);
+}
+.bg-gradient-secondary {
+    background: linear-gradient(45deg, #6c757d, #545b62);
+}
+.bg-gradient-orange {
+    background: linear-gradient(45deg, #e67e22, #d35400);
+}
+.avatar-circle {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    font-weight: bold;
+}
+.card {
+    transition: transform 0.2s;
+}
+.card:hover {
+    transform: translateY(-2px);
+}
+
+.clickable-card {
+    transition: all 0.3s ease;
+}
+
+.clickable-card:hover {
+    transform: translateY(-3px) scale(1.02);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+    border: 2px solid rgba(255,255,255,0.3);
+}
+
+.clickable-card:active {
+    transform: translateY(-1px) scale(1.01);
+}
+.btn:hover {
+    transform: translateY(-1px);
+}
+
+/* تحسينات للشاشات الصغيرة */
+@media (max-width: 768px) {
+    .container-fluid {
+        padding-left: 10px;
+        padding-right: 10px;
+    }
+    .card-body {
+        padding: 1rem;
+    }
+    .btn-sm {
+        font-size: 0.8rem;
+        padding: 0.5rem;
+    }
+    .row.mb-3 {
+        margin-bottom: 1rem !important;
+    }
+    h6.border-bottom {
+        font-size: 0.9rem;
+    }
+}
+
+/* تحسينات للشاشات الكبيرة */
+@media (min-width: 1200px) {
+    .container-fluid {
+        max-width: 1400px;
+        margin: 0 auto;
+    }
+}
+
+/* تحسينات للطباعة */
+@media print {
+    .btn, .card-footer, #current-time, .position-absolute {
+        display: none !important;
+    }
+    .card {
+        break-inside: avoid;
+        box-shadow: none !important;
+        border: 1px solid #ddd !important;
+    }
+    .bg-gradient-primary, .bg-gradient-success, .bg-gradient-warning, 
+    .bg-gradient-danger, .bg-gradient-info, .bg-gradient-secondary {
+        background: #f8f9fa !important;
+        color: #333 !important;
+    }
+}
+
+/* تحسينات إضافية */
+.card-header h6 {
+    font-weight: 600;
+}
+
+.btn-sm .small {
+    font-size: 0.75rem;
+    line-height: 1.2;
+}
+
+.border-bottom {
+    border-color: rgba(0,0,0,0.1) !important;
+}
+
+/* تأثيرات تفاعلية محسنة */
+.btn:focus {
+    box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25);
+}
+
+.card-body .row .col-6 {
+    padding: 0.5rem;
+}
+
+/* تحسين المسافات */
+.mb-3 {
+    margin-bottom: 1rem !important;
+}
+
+.py-2 {
+    padding-top: 0.75rem !important;
+    padding-bottom: 0.75rem !important;
+}
+
+/* تحسين الألوان */
+.text-primary { color: #0d6efd !important; }
+.text-success { color: #198754 !important; }
+.text-warning { color: #ffc107 !important; }
+.text-danger { color: #dc3545 !important; }
+.text-info { color: #0dcaf0 !important; }
+
+/* تحسين الخطوط */
+.small {
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
+/* تحسين التخطيط */
+.row {
+    margin-left: -0.5rem;
+    margin-right: -0.5rem;
+}
+
+.row > * {
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+}
+</style>
+{% endblock content %}
+
+{% block scripts %}
+<script>
+// تحديث الوقت الحالي
+function updateTime() {
+    const now = new Date();
+    const timeString = now.toLocaleTimeString('ar-SA', {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+    });
+    document.getElementById('current-time').textContent = timeString;
+    
+    // تحديث وقت آخر تحديث
+    const lastUpdateElement = document.getElementById('last-update');
+    if (lastUpdateElement) {
+        lastUpdateElement.textContent = timeString;
+    }
+}
+
+// تحديث الوقت كل ثانية
+setInterval(updateTime, 1000);
+updateTime();
+
+// تحديث الصفحة كل دقيقة للحصول على آخر التحديثات
+setInterval(function() {
+    location.reload();
+}, 60000);
+
+// إضافة تأثيرات تفاعلية
+document.addEventListener('DOMContentLoaded', function() {
+    // تأثير hover للبطاقات
+    const cards = document.querySelectorAll('.card');
+    cards.forEach(card => {
+        card.addEventListener('mouseenter', function() {
+            this.style.boxShadow = '0 8px 25px rgba(0,0,0,0.15)';
+        });
+        card.addEventListener('mouseleave', function() {
+            this.style.boxShadow = '';
+        });
+    });
+
+    // تأثير hover للأزرار
+    const buttons = document.querySelectorAll('.btn');
+    buttons.forEach(button => {
+        button.addEventListener('mouseenter', function() {
+            this.style.boxShadow = '0 4px 15px rgba(0,0,0,0.1)';
+        });
+        button.addEventListener('mouseleave', function() {
+            this.style.boxShadow = '';
+        });
+    });
+});
+
+// إضافة تأثير loading للأزرار عند النقر
+document.querySelectorAll('a.btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+        if (!this.target || this.target !== '_blank') {
+            this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري التحميل...';
+        }
+    });
+});
+
+// وظائف الإجراءات السريعة
+function searchPatient() {
+    const patientName = prompt('أدخل اسم المريض أو رقم الهاتف:');
+    if (patientName && patientName.trim()) {
+        window.location.href = `{{ url_for('secretary.list_patients') }}?search=${encodeURIComponent(patientName.trim())}`;
+    }
+}
+
+function createTicketQuick() {
+    const patientId = prompt('أدخل رقم المريض أو ابحث عنه أولاً:');
+    if (patientId && patientId.trim() && !isNaN(patientId)) {
+        window.location.href = `{{ url_for('secretary.create_ticket', patient_id=0) }}`.replace('0', patientId);
+    } else {
+        alert('يرجى إدخال رقم مريض صحيح أو استخدام البحث أولاً');
+    }
+}
+
+function showDailyReport() {
+    const reportWindow = window.open('', '_blank', 'width=800,height=600');
+    reportWindow.document.write(`
+        <html dir="rtl">
+        <head>
+            <title>التقرير اليومي</title>
+            <style>
+                body { font-family: Arial, sans-serif; margin: 20px; }
+                .header { text-align: center; border-bottom: 2px solid #333; padding-bottom: 10px; }
+                .stats { display: flex; justify-content: space-around; margin: 20px 0; }
+                .stat-box { text-align: center; padding: 10px; border: 1px solid #ddd; border-radius: 5px; }
+                .stat-number { font-size: 2em; font-weight: bold; color: #007bff; }
+            </style>
+        </head>
+        <body>
+            <div class="header">
+                <h1>التقرير اليومي</h1>
+                <p>التاريخ: {{ get_arabic_date() }}</p>
+            </div>
+            <div class="stats">
+                <div class="stat-box">
+                    <div class="stat-number">{{ daily_stats.patients_today or 0 }}</div>
+                    <div>مرضى جدد اليوم</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-number">{{ waiting_tickets|length or 0 }}</div>
+                    <div>مرضى في الانتظار</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-number">{{ daily_stats.visits_today or 0 }}</div>
+                    <div>زيارات اليوم</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-number">{{ total_pending_amount or 0 }} ريال</div>
+                    <div>مدفوعات مستحقة</div>
+                </div>
+            </div>
+            <button onclick="window.print()" style="margin: 20px auto; display: block; padding: 10px 20px;">طباعة</button>
+        </body>
+        </html>
+    `);
+}
+
+function showPatientStats() {
+    alert(`إحصائيات المرضى:
+    
+إجمالي المرضى: {{ daily_stats.total_patients or 0 }}
+مرضى جدد اليوم: {{ daily_stats.patients_today or 0 }}
+مرضى في الانتظار: {{ waiting_tickets|length or 0 }}
+زيارات اليوم: {{ daily_stats.visits_today or 0 }}`);
+}
+
+function showPaymentReport() {
+    alert(`تقرير المدفوعات:
+    
+عدد المدفوعات المستحقة: {{ pending_payments|length or 0 }}
+إجمالي المبلغ المستحق: {{ total_pending_amount or 0 }} ريال
+    
+للمزيد من التفاصيل، انتقل إلى صفحة إدارة المدفوعات.`);
+}
+
+function printDashboard() {
+    window.print();
+}
+
+function exportData() {
+    alert('ميزة تصدير البيانات ستكون متاحة قريباً');
+}
+
+function markLastVisitAsPaid(visitId) {
+    if (confirm('هل أنت متأكد من تحويل حالة الدفع إلى مدفوع؟')) {
+        // تغيير لون الكارت فوراً للإشارة للتحديث
+        const card = document.getElementById(`unpaid-visit-card-${visitId}`);
+        if (card) {
+            card.classList.remove('bg-gradient-orange');
+            card.classList.add('bg-gradient-success');
+            card.innerHTML = `
+                <div class="card-body p-2">
+                    <div class="text-center">
+                        <h6 class="card-title text-white-50 mb-1 small">تم التحديث</h6>
+                        <div class="mb-2">
+                            <i class="fas fa-check-circle fa-2x text-white"></i>
+                        </div>
+                        <p class="mb-0 text-white">تم تحديد الزيارة كمدفوعة</p>
+                    </div>
+                </div>
+            `;
+            card.style.cursor = 'default';
+            card.onclick = null;
+        }
+        
+        // إرسال الطلب للخادم
+        setTimeout(() => {
+            window.location.href = `/secretary/visit/${visitId}/mark_as_paid_get`;
+        }, 1000);
+    }
+}
+
+function showHelp() {
+    const helpWindow = window.open('', '_blank', 'width=600,height=500');
+    helpWindow.document.write(`
+        <html dir="rtl">
+        <head>
+            <title>المساعدة</title>
+            <style>
+                body { font-family: Arial, sans-serif; margin: 20px; line-height: 1.6; }
+                .help-section { margin-bottom: 20px; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+                .help-title { color: #007bff; font-weight: bold; margin-bottom: 10px; }
+            </style>
+        </head>
+        <body>
+            <h1>دليل استخدام لوحة تحكم السكرتير</h1>
+            
+            <div class="help-section">
+                <div class="help-title">إدارة المرضى:</div>
+                <ul>
+                    <li>تسجيل مريض جديد: لإضافة مريض جديد للنظام</li>
+                    <li>قائمة المرضى: لعرض جميع المرضى المسجلين</li>
+                    <li>البحث عن مريض: للبحث السريع عن مريض معين</li>
+                </ul>
+            </div>
+            
+            <div class="help-section">
+                <div class="help-title">إدارة قائمة الانتظار:</div>
+                <ul>
+                    <li>إدارة قائمة الانتظار: لإدارة المرضى المنتظرين</li>
+                    <li>إنشاء تذكرة سريعة: لإضافة مريض لقائمة الانتظار</li>
+                </ul>
+            </div>
+            
+            <div class="help-section">
+                <div class="help-title">إدارة المدفوعات:</div>
+                <ul>
+                    <li>إدارة المدفوعات: لمتابعة المدفوعات المستحقة</li>
+                    <li>تحديث حالة الدفع للزيارات</li>
+                </ul>
+            </div>
+        </body>
+        </html>
+    `);
+}
+</script>
+{% endblock %}

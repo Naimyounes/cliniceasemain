@@ -1,0 +1,512 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<!-- إضافة CSRF token للاستخدام في JavaScript -->
+<meta name="csrf-token" content="{{ csrf_token() }}">
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>إدارة قائمة الانتظار</h1>
+        <div>
+            <span class="badge bg-info fs-6">عدد المنتظرين: {{ waiting_tickets|length }}</span>
+        </div>
+    </div>
+
+    <!-- المريض المستدعى حالياً -->
+    {% if called_ticket %}
+    <div class="card mb-4 border-success">
+        <div class="card-header bg-success text-white">
+            <h5 class="mb-0">
+                <i class="fas fa-user-md"></i> المريض المستدعى حالياً
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <div class="d-flex align-items-center">
+                        <div class="avatar-circle bg-success text-white me-3">
+                            {{ called_ticket.patient.full_name[0] }}
+                        </div>
+                        <div>
+                            <h4 class="mb-1">
+                                {{ called_ticket.patient.full_name }}
+                                {% if called_ticket.ticket_type == 'reservation' %}
+                                    <span class="badge bg-warning text-dark ms-2">أولوية</span>
+                                {% endif %}
+                            </h4>
+                            <p class="text-muted mb-0">
+                                <i class="fas fa-phone me-1"></i>{{ called_ticket.patient.phone }}
+                                <span class="ms-3">
+                                    <i class="fas fa-ticket-alt me-1"></i>رقم التذكرة: {{ called_ticket.display_number }}
+                                </span>
+                                {% if called_ticket.ticket_type == 'reservation' and called_ticket.appointment %}
+                                    <br><small class="text-info">
+                                        <i class="fas fa-calendar me-1"></i>وصل: {{ called_ticket.created_at.strftime('%H:%M') }} | 
+                                        موعد: {{ called_ticket.appointment.appointment_date.strftime('%H:%M') }}
+                                    </small>
+                                {% endif %}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4 text-center">
+                    <div class="mb-2">
+                        <span class="badge bg-success fs-6 px-3 py-2">
+                            <i class="fas fa-clock me-1"></i>
+                            مستدعى منذ: {{ called_ticket.created_at.strftime('%H:%M') }}
+                        </span>
+                    </div>
+                    <button type="button" class="btn btn-warning btn-sm" onclick="repeatAnnouncementForTicket('{{ called_ticket.display_number }}', '{{ called_ticket.patient.full_name }}')" title="إعادة المناداة">
+                        <i class="fas fa-volume-up me-1"></i> إعادة المناداة
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- قائمة المنتظرين -->
+    <div class="card">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">
+                <i class="fas fa-users"></i> قائمة المنتظرين
+            </h5>
+        </div>
+        <div class="card-body">
+            {% if waiting_tickets %}
+                <div class="table-responsive">
+                    <table class="table table-hover table-striped">
+                        <thead>
+                            <tr>
+                                <th>رقم التذكرة</th>
+                                <th>اسم المريض</th>
+                                <th>رقم الهاتف</th>
+                                <th>النوع</th>
+                                <th>الأوقات</th>
+                                <th>مدة الانتظار</th>
+                                <th>الإجراءات</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for ticket in waiting_tickets %}
+                                <tr class="{% if ticket.ticket_type == 'reservation' %}table-warning{% endif %}">
+                                    <td>
+                                        {% if ticket.ticket_type == 'reservation' %}
+                                            <span class="badge bg-warning text-dark fs-6">{{ ticket.display_number }}</span>
+                                        {% else %}
+                                            <span class="badge bg-primary fs-6">{{ ticket.display_number }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <strong>{{ ticket.patient.full_name }}</strong>
+                                        {% if ticket.ticket_type == 'reservation' %}
+                                            <i class="fas fa-star text-warning ms-1" title="أولوية - لديه موعد"></i>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ ticket.patient.phone }}</td>
+                                    <td>
+                                        {% if ticket.ticket_type == 'reservation' %}
+                                            <span class="badge bg-warning text-dark">أولوية</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">عادي</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if ticket.ticket_type == 'reservation' and ticket.appointment %}
+                                            <div>
+                                                <span class="badge bg-info text-white">وصل: {{ ticket.created_at.strftime('%H:%M') }}</span>
+                                                <br><span class="badge bg-warning text-dark mt-1">موعد: {{ ticket.appointment.appointment_date.strftime('%H:%M') }}</span>
+                                            </div>
+                                        {% else %}
+                                            <span class="badge bg-primary">{{ ticket.created_at.strftime('%H:%M') }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if ticket.ticket_type == 'reservation' and ticket.appointment %}
+                                            {% set appointment_time = ticket.appointment.appointment_date %}
+                                            {% set current_time = get_current_datetime() %}
+                                            {% if current_time >= appointment_time %}
+                                                {% set waiting_time = (current_time - appointment_time).total_seconds() / 60 %}
+                                            {% else %}
+                                                {% set waiting_time = 0 %}
+                                            {% endif %}
+                                        {% else %}
+                                            {% set waiting_time = (get_current_datetime() - ticket.created_at).total_seconds() / 60 %}
+                                        {% endif %}
+                                        
+                                        {% if waiting_time < 60 %}
+                                            <span class="text-success">{{ "%.0f"|format(waiting_time) }} دقيقة</span>
+                                        {% elif waiting_time < 120 %}
+                                            <span class="text-warning">{{ "%.0f"|format(waiting_time) }} دقيقة</span>
+                                        {% else %}
+                                            <span class="text-danger">{{ "%.0f"|format(waiting_time) }} دقيقة</span>
+                                        {% endif %}
+                                        
+                                        {% if ticket.ticket_type == 'reservation' %}
+                                            <br><small class="text-muted">منذ وقت الموعد</small>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm" role="group">
+                                            <a href="{{ url_for('secretary.patient_details', patient_id=ticket.patient.id) }}" 
+                                               class="btn btn-info" title="عرض ملف المريض">
+                                                <i class="fas fa-user"></i>
+                                            </a>
+                                            <form method="POST" action="{{ url_for('secretary.delete_ticket', ticket_id=ticket.id) }}" 
+                                                  style="display: inline;" onsubmit="return confirm('هل أنت متأكد من حذف هذه التذكرة؟ سيتم إزالة المريض من قائمة الانتظار.')">
+                                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                                                <button type="submit" class="btn btn-danger btn-sm" title="حذف من قائمة الانتظار">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="alert alert-info text-center">
+                    <i class="fas fa-info-circle fa-2x mb-3"></i>
+                    <h5>لا يوجد مرضى في قائمة الانتظار</h5>
+                    <p class="mb-0">جميع المرضى تم فحصهم أو لم يصل أي مريض بعد</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- أزرار التحكم -->
+    <div class="row mt-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    <h6 class="mb-0"><i class="fas fa-microphone"></i> استدعاء التذكرة التالية</h6>
+                </div>
+                <div class="card-body text-center">
+                    <form method="POST" action="{{ url_for('secretary.call_next_ticket') }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                        <button type="submit" class="btn btn-success btn-lg">
+                            <i class="fas fa-bullhorn"></i> استدعاء التالي
+                        </button>
+                    </form>
+                    {% if waiting_tickets %}
+                        <small class="text-muted mt-2 d-block">
+                            التالي: 
+                            {% set next_ticket = waiting_tickets|selectattr("status", "equalto", "waiting")|list|first %}
+                            {% if next_ticket %}
+                                {{ next_ticket.display_number }} - {{ next_ticket.patient.full_name }}
+                                {% if next_ticket.ticket_type == 'reservation' %}
+                                    <span class="badge bg-warning text-dark ms-1">أولوية</span>
+                                {% endif %}
+                            {% else %}
+                                لا توجد تذاكر منتظرة
+                            {% endif %}
+                        </small>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-info text-white">
+                    <h6 class="mb-0"><i class="fas fa-chart-bar"></i> إحصائيات اليوم</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-4">
+                            <div class="border-end">
+                                <h4 class="text-primary mb-0">{{ waiting_tickets|length }}</h4>
+                                <small class="text-muted">منتظر</small>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="border-end">
+                                <h4 class="text-warning mb-0">{{ waiting_tickets|selectattr("ticket_type", "equalto", "reservation")|list|length }}</h4>
+                                <small class="text-muted">أولوية</small>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <h4 class="text-success mb-0">{{ 1 if called_ticket else 0 }}</h4>
+                            <small class="text-muted">مستدعى</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="mt-4">
+        <a href="{{ url_for('secretary.dashboard') }}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> العودة للوحة التحكم
+        </a>
+        <a href="{{ url_for('secretary.list_patients') }}" class="btn btn-primary ms-2">
+            <i class="fas fa-user-plus"></i> إضافة مريض للقائمة
+        </a>
+    </div>
+</div>
+
+<style>
+.avatar-circle {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    font-weight: bold;
+}
+</style>
+
+<script>
+// تحديث الصفحة كل 30 ثانية للحصول على آخر التحديثات
+setInterval(function() {
+    location.reload();
+}, 30000);
+
+// وظيفة لتحويل الأرقام إلى كلمات عربية
+function numberToArabicWords(number) {
+    const arabicNumbers = [
+        'صفر', 'واحد', 'اثنان', 'ثلاثة', 'أربعة', 'خمسة', 'ستة', 'سبعة', 'ثمانية', 'تسعة',
+        'عشرة', 'أحد عشر', 'اثنا عشر', 'ثلاثة عشر', 'أربعة عشر', 'خمسة عشر', 'ستة عشر', 'سبعة عشر', 'ثمانية عشر', 'تسعة عشر'
+    ];
+    
+    const tens = [
+        '', '', 'عشرون', 'ثلاثون', 'أربعون', 'خمسون', 'ستون', 'سبعون', 'ثمانون', 'تسعون'
+    ];
+    
+    // تحويل الرقم إلى نص
+    number = number.toString();
+    
+    // للأرقام من 0 إلى 19
+    if (number < 20) {
+        return arabicNumbers[number];
+    }
+    // للأرقام من 20 إلى 99
+    else if (number < 100) {
+        const digit1 = parseInt(number[0]);
+        const digit2 = parseInt(number[1]);
+        
+        if (digit2 === 0) {
+            return tens[digit1];
+        } else {
+            return arabicNumbers[digit2] + ' و' + tens[digit1];
+        }
+    }
+    // للأرقام من 100 فما فوق، نعيد الرقم كما هو
+    else {
+        return number;
+    }
+}
+
+// وظيفة لتشغيل صوت التنبيه
+function playNotificationSound() {
+    return new Promise((resolve, reject) => {
+        try {
+            const audio = new Audio('/static/sounds/notification.mp3');
+            audio.volume = 0.8;
+            
+            audio.onended = () => {
+                resolve();
+            };
+            
+            audio.onerror = () => {
+                console.warn('لم يتم العثور على ملف صوت التنبيه، استخدام صوت بديل');
+                // استخدام صوت بديل مولد بـ Web Audio API
+                playBeepSound().then(resolve).catch(reject);
+            };
+            
+            audio.play().catch(() => {
+                console.warn('فشل في تشغيل صوت التنبيه، استخدام صوت بديل');
+                // استخدام صوت بديل مولد بـ Web Audio API
+                playBeepSound().then(resolve).catch(reject);
+            });
+        } catch (error) {
+            console.warn('خطأ في تشغيل صوت التنبيه، استخدام صوت بديل:', error);
+            // استخدام صوت بديل مولد بـ Web Audio API
+            playBeepSound().then(resolve).catch(reject);
+        }
+    });
+}
+
+// وظيفة لتشغيل صوت تنبيه بديل باستخدام Web Audio API
+function playBeepSound() {
+    return new Promise((resolve, reject) => {
+        try {
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            oscillator.frequency.setValueAtTime(800, audioContext.currentTime); // تردد 800 هرتز
+            oscillator.type = 'sine';
+            
+            gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+            
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + 0.5);
+            
+            oscillator.onended = () => {
+                audioContext.close();
+                resolve();
+            };
+            
+            setTimeout(() => {
+                resolve();
+            }, 600);
+            
+        } catch (error) {
+            console.warn('فشل في تشغيل الصوت البديل:', error);
+            resolve(); // نكمل حتى لو فشل الصوت
+        }
+    });
+}
+
+// وظيفة مساعدة لنطق النص باستخدام Web Speech API
+function speakAnnouncement(text) {
+    return new Promise((resolve, reject) => {
+        // إيقاف أي كلام سابق
+        window.speechSynthesis.cancel();
+        
+        // استخدام واجهة برمجة الكلام لنطق الإعلان
+        const speech = new SpeechSynthesisUtterance(text);
+        speech.lang = 'ar-SA';
+        speech.rate = 0.8; // سرعة أبطأ للوضوح
+        speech.volume = 1.0; // أعلى صوت
+        speech.pitch = 1.0; // نبرة طبيعية
+        
+        // إضافة مستمعي الأحداث
+        speech.onend = () => {
+            console.log('انتهى الإعلان الصوتي');
+            resolve();
+        };
+        
+        speech.onerror = (event) => {
+            console.error('خطأ في الإعلان الصوتي:', event.error);
+            reject(event.error);
+        };
+        
+        // الحصول على قائمة الأصوات المتاحة
+        let voices = window.speechSynthesis.getVoices();
+        
+        // إذا كانت قائمة الأصوات فارغة، انتظر حتى يتم تحميلها
+        if (voices.length === 0) {
+            window.speechSynthesis.onvoiceschanged = function() {
+                voices = window.speechSynthesis.getVoices();
+                setArabicVoiceAndSpeak();
+            };
+        } else {
+            setArabicVoiceAndSpeak();
+        }
+        
+        // وظيفة لتعيين الصوت العربي إذا كان متاحًا
+        function setArabicVoiceAndSpeak() {
+            const arabicVoice = voices.find(voice => 
+                voice.lang.includes('ar') || 
+                voice.name.includes('Arabic') || 
+                voice.name.includes('العربية'));
+            
+            if (arabicVoice) {
+                speech.voice = arabicVoice;
+                console.log('تم استخدام صوت عربي:', arabicVoice.name);
+            } else {
+                console.log('لم يتم العثور على صوت عربي، استخدام الصوت الافتراضي');
+            }
+            
+            // تشغيل الإعلان الصوتي
+            try {
+                window.speechSynthesis.speak(speech);
+            } catch (error) {
+                console.error('فشل في تشغيل الإعلان الصوتي:', error);
+                reject(error);
+            }
+        }
+    });
+}
+
+// وظيفة لإعادة المناداة من صفحة السكرتير
+function repeatAnnouncementForTicket(ticketNumber, patientName) {
+    console.log('إرسال مناداة مركزية من السكرتير:', ticketNumber, patientName);
+    
+    // تعطيل الزر مؤقتاً
+    const button = event.target;
+    const originalText = button.innerHTML;
+    button.disabled = true;
+    button.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> جاري الإرسال...';
+    
+    // الحصول على CSRF token
+    const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+    
+    // إرسال طلب إلى السيرفر لتشغيل المناداة في جميع الشاشات
+    fetch('/api/trigger-announcement', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken
+        },
+        body: JSON.stringify({
+            ticket_number: ticketNumber,
+            patient_name: patientName
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        console.log('نتيجة إرسال المناداة:', data);
+        if (data.success) {
+            button.innerHTML = '<i class="fas fa-check me-1"></i> تم الإرسال';
+            setTimeout(() => {
+                button.disabled = false;
+                button.innerHTML = originalText;
+            }, 3000);
+        } else {
+            throw new Error(data.error || 'خطأ غير معروف');
+        }
+    })
+    .catch(error => {
+        console.error('خطأ في إرسال المناداة:', error);
+        button.innerHTML = '<i class="fas fa-exclamation-triangle me-1"></i> خطأ';
+        setTimeout(() => {
+            button.disabled = false;
+            button.innerHTML = originalText;
+        }, 3000);
+        
+        // تشغيل المناداة محلياً كبديل
+        console.log('تشغيل المناداة محلياً كبديل...');
+        playLocalAnnouncement(ticketNumber);
+    });
+}
+
+// وظيفة لتشغيل المناداة محلياً (كبديل في حالة فشل الإرسال المركزي)
+function playLocalAnnouncement(ticketNumber) {
+    // تحويل الرقم إلى كلمات عربية
+    const ticketInArabic = numberToArabicWords(ticketNumber);
+    
+    // إنشاء نص الإعلان بالرقم فقط
+    const announcement = `التذكرة رقم ${ticketInArabic} فليتوجه إلى قاعة الفحص`;
+    
+    console.log('تشغيل المناداة محلياً:', announcement);
+    
+    // تشغيل صوت التنبيه أولاً
+    playNotificationSound().then(() => {
+        // تشغيل الإعلان الأول
+        speakAnnouncement(announcement).then(() => {
+            // انتظار ثانية واحدة ثم تكرار الإعلان
+            setTimeout(() => {
+                speakAnnouncement(announcement);
+            }, 1000);
+        });
+    }).catch(() => {
+        // في حالة فشل تشغيل صوت التنبيه، تشغيل الإعلان مباشرة
+        speakAnnouncement(announcement).then(() => {
+            setTimeout(() => {
+                speakAnnouncement(announcement);
+            }, 1000);
+        });
+    });
+}
+</script>
+{% endblock content %}

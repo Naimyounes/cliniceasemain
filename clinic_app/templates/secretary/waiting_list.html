@@ -1,0 +1,157 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>قائمة الانتظار</h1>
+        <form action="{{ url_for('secretary.search_patient_for_ticket') }}" method="post" class="d-flex">
+            <input type="text" name="search" class="form-control" placeholder="ابحث عن مريض...">
+            <button type="submit" class="btn btn-success ms-2">إضافة للانتظار</button>
+        </form>
+    </div>
+
+    <!-- وضع المريض الحالي -->
+    {% if current_ticket %}
+    <div class="card mb-4 border-primary">
+        <div class="card-header bg-primary text-white">
+            <h4 class="mb-0">المريض الحالي</h4>
+        </div>
+        <div class="card-body">
+            <div class="row align-items-center">
+                <div class="col-md-2 text-center">
+                    <div class="display-4 fw-bold">{{ current_ticket.number }}</div>
+                    <div class="text-muted">رقم التذكرة</div>
+                </div>
+                <div class="col-md-5">
+                    <h4>{{ current_ticket.patient.full_name }}</h4>
+                    <p class="text-muted mb-0">{{ current_ticket.patient.phone }}</p>
+                </div>
+                <div class="col-md-5 text-end">
+                    <div class="btn-group">
+                        <a href="{{ url_for('doctor.patient_visit', patient_id=current_ticket.patient_id) }}" class="btn btn-outline-primary">بدء الفحص</a>
+                        <button type="button" class="btn btn-outline-secondary" disabled>تم النداء</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- المرضى في قائمة الانتظار -->
+    <div class="card">
+        <div class="card-header bg-success text-white">
+            <h4 class="mb-0">قائمة الانتظار</h4>
+        </div>
+        <div class="card-body">
+            {% if tickets %}
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover">
+                        <thead>
+                            <tr>
+                                <th>رقم التذكرة</th>
+                                <th>اسم المريض</th>
+                                <th>رقم الهاتف</th>
+                                <th>وقت الوصول</th>
+                                <th>الحالة</th>
+                                <th>الإجراءات</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for ticket in tickets %}
+                            {% if ticket.status in ["waiting", "called"] %}
+                            <tr {% if ticket.status == "called" %}class="table-info"{% endif %}>
+                                <td class="fw-bold">{{ ticket.number }}</td>
+                                <td>{{ ticket.patient.full_name }}</td>
+                                <td>{{ ticket.patient.phone }}</td>
+                                <td>{{ ticket.created_at.strftime('%H:%M') }}</td>
+                                <td>
+                                    {% if ticket.status == "waiting" %}
+                                    <span class="badge bg-warning">في الانتظار</span>
+                                    {% elif ticket.status == "called" %}
+                                    <span class="badge bg-info">تم النداء</span>
+                                    {% elif ticket.status == "completed" %}
+                                    <span class="badge bg-success">تم الانتهاء</span>
+                                    {% elif ticket.status == "cancelled" %}
+                                    <span class="badge bg-danger">ملغي</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        {% if ticket.status == "waiting" %}
+                                            <a href="{{ url_for('doctor.patient_visit', patient_id=ticket.patient.id) }}" class="btn btn-outline-primary">
+                                                <i class="fas fa-user-md"></i> بدء الفحص
+                                            </a>
+                                        {% elif ticket.status == "called" %}
+                                            <button type="button" class="btn btn-outline-secondary" disabled>
+                                                <i class="fas fa-microphone"></i> تم النداء
+                                            </button>
+                                        {% endif %}
+                                        <a href="{{ url_for('secretary.patient_details', patient_id=ticket.patient.id) }}" class="btn btn-info">
+                                            <i class="fas fa-info-circle"></i>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endif %}
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="alert alert-info">
+                    لا يوجد مرضى في قائمة الانتظار حالياً
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if completed_tickets %}
+    <!-- المرضى الذين تم فحصهم -->
+    <div class="card mt-4">
+        <div class="card-header bg-secondary text-white">
+            <h4 class="mb-0">تم الانتهاء من فحصهم اليوم</h4>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped table-hover">
+                    <thead>
+                        <tr>
+                            <th>رقم التذكرة</th>
+                            <th>اسم المريض</th>
+                            <th>وقت الوصول</th>
+                            <th>وقت الانتهاء</th>
+                            <th>الحالة</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for ticket in completed_tickets %}
+                        <tr>
+                            <td>{{ ticket.number }}</td>
+                            <td>{{ ticket.patient.full_name }}</td>
+                            <td>{{ ticket.created_at.strftime('%H:%M') }}</td>
+                            <td>{{ ticket.updated_at.strftime('%H:%M') }}</td>
+                            <td>
+                                <span class="badge bg-success">تم الانتهاء</span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="mt-4">
+        <a href="{{ url_for('secretary.dashboard') }}" class="btn btn-secondary">العودة للوحة التحكم</a>
+    </div>
+</div>
+
+<script>
+    // تحديث تلقائي لقائمة الانتظار كل 30 ثانية
+    setTimeout(function() {
+        location.reload();
+    }, 30000);
+</script>
+
+{% endblock content %}

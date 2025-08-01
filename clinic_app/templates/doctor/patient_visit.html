@@ -1,0 +1,271 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('doctor.dashboard') }}">لوحة تحكم الطبيب</a></li>
+                <li class="breadcrumb-item active" aria-current="page">زيارة المريض</li>
+            </ol>
+        </nav>
+
+        <div class="card mb-4">
+            <div class="card-header bg-info text-white">
+                <h3 class="mb-0">معلومات المريض</h3>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <p><strong>الاسم:</strong> {{ patient.full_name }}</p>
+                    </div>
+                    <div class="col-md-3">
+                        <p><strong>رقم الهاتف:</strong> {{ patient.phone }}</p>
+                    </div>
+                    <div class="col-md-3">
+                        <p><strong>تاريخ الميلاد:</strong> 
+                            {% if patient.birth_date %}
+                                {{ patient.birth_date.strftime('%Y-%m-%d') }}
+                            {% else %}
+                                غير محدد
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h3 class="mb-0">تسجيل زيارة جديدة</h3>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="">
+                    {{ form.hidden_tag() }}
+
+                    <div class="row mb-3">
+                        <div class="col-12">
+                            <div class="form-group">
+                                {{ form.symptoms.label(class="form-control-label mb-1") }}
+                                {% if form.symptoms.errors %}
+                                    {{ form.symptoms(class="form-control is-invalid", rows=4) }}
+                                    <div class="invalid-feedback">
+                                        {% for error in form.symptoms.errors %}
+                                            <span>{{ error }}</span>
+                                        {% endfor %}
+                                    </div>
+                                {% else %}
+                                    {{ form.symptoms(class="form-control", rows=4) }}
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-12">
+                            <div class="form-group">
+                                {{ form.diagnosis.label(class="form-control-label mb-1") }}
+                                {% if form.diagnosis.errors %}
+                                    {{ form.diagnosis(class="form-control is-invalid", rows=4) }}
+                                    <div class="invalid-feedback">
+                                        {% for error in form.diagnosis.errors %}
+                                            <span>{{ error }}</span>
+                                        {% endfor %}
+                                    </div>
+                                {% else %}
+                                    {{ form.diagnosis(class="form-control", rows=4) }}
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-12">
+                            <div class="form-group">
+                                {{ form.treatment.label(class="form-control-label mb-1") }}
+                                {% if form.treatment.errors %}
+                                    {{ form.treatment(class="form-control is-invalid", rows=4) }}
+                                    <div class="invalid-feedback">
+                                        {% for error in form.treatment.errors %}
+                                            <span>{{ error }}</span>
+                                        {% endfor %}
+                                    </div>
+                                {% else %}
+                                    {{ form.treatment(class="form-control", rows=4) }}
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-8">
+                            <div class="form-group">
+                                {{ form.notes.label(class="form-control-label mb-1") }}
+                                {{ form.notes(class="form-control", rows=3) }}
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                {{ form.status.label(class="form-control-label mb-1") }}
+                                {{ form.status(class="form-select") }}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                {{ form.price.label(class="form-control-label mb-1") }}
+                                {% if form.price.errors %}
+                                    {{ form.price(class="form-control is-invalid") }}
+                                    <div class="invalid-feedback">
+                                        {% for error in form.price.errors %}
+                                            <span>{{ error }}</span>
+                                        {% endfor %}
+                                    </div>
+                                {% else %}
+                                    {{ form.price(class="form-control") }}
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                {{ form.payment_status.label(class="form-control-label mb-1") }}
+                                {{ form.payment_status(class="form-select") }}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- حقول الموعد - تظهر عند اختيار "متابعة" -->
+                    <div id="follow-up-fields" class="row mb-3" style="display: none;">
+                        <div class="col-12">
+                            <div class="alert alert-info">
+                                <h6><i class="fas fa-calendar-plus"></i> موعد المتابعة</h6>
+                                <p class="mb-0">سيتم إنشاء موعد متابعة تلقائياً للمريض</p>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                {{ form.follow_up_date.label(class="form-control-label mb-1") }}
+                                {{ form.follow_up_date(class="form-control") }}
+                                {% if form.follow_up_date.errors %}
+                                    <div class="text-danger">
+                                        {% for error in form.follow_up_date.errors %}
+                                            <small>{{ error }}</small>
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                {{ form.follow_up_notes.label(class="form-control-label mb-1") }}
+                                {{ form.follow_up_notes(class="form-control", rows=3, placeholder="ملاحظات حول موعد المتابعة (اختياري)") }}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="text-center">
+                        {{ form.submit(class="btn btn-primary px-5 py-2") }}
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        {% if previous_visits %}
+            <div class="card mt-4">
+                <div class="card-header bg-secondary text-white">
+                    <h3 class="mb-0">الزيارات السابقة</h3>
+                </div>
+                <div class="card-body">
+                    <div class="accordion" id="previousVisits">
+                        {% for visit in previous_visits %}
+                            <div class="accordion-item">
+                                <h2 class="accordion-header">
+                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                                        data-bs-target="#visit{{ visit.id }}" aria-expanded="false" aria-controls="visit{{ visit.id }}">
+                                        زيارة {{ visit.date.strftime('%Y-%m-%d') }} - الحالة: {{ visit.status }}
+                                    </button>
+                                </h2>
+                                <div id="visit{{ visit.id }}" class="accordion-collapse collapse" data-bs-parent="#previousVisits">
+                                    <div class="accordion-body">
+                                        <div class="row mb-2">
+                                            <div class="col-md-3"><strong>التاريخ:</strong></div>
+                                            <div class="col-md-9">{{ visit.date.strftime('%Y-%m-%d %H:%M') }}</div>
+                                        </div>
+                                        <div class="row mb-2">
+                                            <div class="col-md-3"><strong>الأعراض:</strong></div>
+                                            <div class="col-md-9">{{ visit.symptoms }}</div>
+                                        </div>
+                                        <div class="row mb-2">
+                                            <div class="col-md-3"><strong>التشخيص:</strong></div>
+                                            <div class="col-md-9">{{ visit.diagnosis }}</div>
+                                        </div>
+                                        <div class="row mb-2">
+                                            <div class="col-md-3"><strong>العلاج:</strong></div>
+                                            <div class="col-md-9">{{ visit.treatment }}</div>
+                                        </div>
+                                        {% if visit.notes %}
+                                            <div class="row mb-2">
+                                                <div class="col-md-3"><strong>ملاحظات:</strong></div>
+                                                <div class="col-md-9">{{ visit.notes }}</div>
+                                            </div>
+                                        {% endif %}
+                                        <div class="row">
+                                            <div class="col-12">
+                                                <a href="{{ url_for('doctor.view_visit', visit_id=visit.id) }}" class="btn btn-sm btn-info">
+                                                    <i class="fas fa-eye me-1"></i> عرض التفاصيل
+                                                </a>
+                                                {% if visit.prescription %}
+                                                    <a href="{{ url_for('static', filename=visit.prescription.pdf_file) }}" class="btn btn-sm btn-success" target="_blank">
+                                                        <i class="fas fa-file-pdf me-1"></i> عرض الوصفة
+                                                    </a>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const statusSelect = document.getElementById('status');
+    const followUpFields = document.getElementById('follow-up-fields');
+    const followUpDateInput = document.getElementById('follow_up_date');
+    
+    function toggleFollowUpFields() {
+        if (statusSelect.value === 'متابعة') {
+            followUpFields.style.display = 'block';
+            // تعيين قيمة افتراضية للموعد (أسبوع من الآن)
+            if (!followUpDateInput.value) {
+                const nextWeek = new Date();
+                nextWeek.setDate(nextWeek.getDate() + 7);
+                nextWeek.setHours(9, 0, 0, 0); // 9:00 صباحاً
+                followUpDateInput.value = nextWeek.toISOString().slice(0, 16);
+            }
+        } else {
+            followUpFields.style.display = 'none';
+            followUpDateInput.value = '';
+        }
+    }
+    
+    // تشغيل الدالة عند تحميل الصفحة
+    toggleFollowUpFields();
+    
+    // تشغيل الدالة عند تغيير الحالة
+    statusSelect.addEventListener('change', toggleFollowUpFields);
+    
+    // تعيين الحد الأدنى للتاريخ (اليوم)
+    const now = new Date();
+    now.setHours(now.getHours() + 1);
+    const minDateTime = now.toISOString().slice(0, 16);
+    followUpDateInput.min = minDateTime;
+});
+</script>
+{% endblock content %}

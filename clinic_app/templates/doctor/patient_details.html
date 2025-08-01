@@ -1,0 +1,142 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="container mt-4">
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('doctor.dashboard') }}">لوحة التحكم</a></li>
+                    <li class="breadcrumb-item active">تفاصيل المريض</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                    <h3 class="mb-0">معلومات المريض</h3>
+                    <div>
+                        <a href="{{ url_for('doctor.patient_visit', patient_id=patient.id) }}" class="btn btn-light">
+                            <i class="fas fa-plus-circle"></i> زيارة جديدة
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <table class="table table-borderless">
+                                <tr>
+                                    <th width="40%">الاسم الكامل:</th>
+                                    <td>{{ patient.full_name }}</td>
+                                </tr>
+                                <tr>
+                                    <th>رقم الهاتف:</th>
+                                    <td>{{ patient.phone }}</td>
+                                </tr>
+                                <tr>
+                                    <th>تاريخ الميلاد:</th>
+                                    <td>{{ patient.birth_date.strftime('%Y-%m-%d') if patient.birth_date else 'غير محدد' }}</td>
+                                </tr>
+                                <tr>
+                                    <th>زمرة الدم:</th>
+                                    <td>{{ patient.blood_group if patient.blood_group else 'غير محدد' }}</td>
+                                </tr>
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <table class="table table-borderless">
+                                <tr>
+                                    <th width="40%">الجنس:</th>
+                                    <td>{{ "ذكر" if patient.gender == "male" else "أنثى" if patient.gender == "female" else "غير محدد" }}</td>
+                                </tr>
+                                <tr>
+                                    <th>العنوان:</th>
+                                    <td>{{ patient.address if patient.address else 'غير محدد' }}</td>
+                                </tr>
+                                <tr>
+                                    <th>تاريخ التسجيل:</th>
+                                    <td>{{ patient.created_at.strftime('%Y-%m-%d') }}</td>
+                                </tr>
+                                <tr>
+                                    <th>عدد الزيارات:</th>
+                                    <td>{{ patient.visits|length }}</td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- سجل الزيارات -->
+            <div class="card">
+                <div class="card-header bg-info text-white">
+                    <h3 class="mb-0">سجل الزيارات</h3>
+                </div>
+                <div class="card-body">
+                    {% if patient.visits %}
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-hover">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>التاريخ</th>
+                                        <th>التشخيص</th>
+                                        <th>الحالة</th>
+                                        <th>سعر الزيارة</th>
+                                        <th>حالة الدفع</th>
+                                        <th>الإجراءات</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for visit in patient.visits|sort(attribute='date', reverse=True) %}
+                                        <tr>
+                                            <td>{{ visit.date.strftime('%Y-%m-%d') }}</td>
+                                            <td>{{ (visit.diagnosis[:50] + '...') if visit.diagnosis|length > 50 else visit.diagnosis }}</td>
+                                            <td>
+                                                {% if visit.status == "مستقر" %}
+                                                    <span class="badge bg-success">{{ visit.status }}</span>
+                                                {% elif visit.status == "متابعة" %}
+                                                    <span class="badge bg-warning">{{ visit.status }}</span>
+                                                {% elif visit.status == "طارئ" %}
+                                                    <span class="badge bg-danger">{{ visit.status }}</span>
+                                                {% else %}
+                                                    <span class="badge bg-secondary">{{ visit.status }}</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>{{ visit.price or 'غير محدد' }} ريال</td>
+                                            <td>
+                                                {% if visit.payment_status == "مدفوع" %}
+                                                    <span class="badge bg-success">{{ visit.payment_status }}</span>
+                                                {% elif visit.payment_status == "مدفوع جزئياً" %}
+                                                    <span class="badge bg-warning text-dark">{{ visit.payment_status }}</span>
+                                                {% else %}
+                                                    <span class="badge bg-danger">{{ visit.payment_status }}</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                <a href="{{ url_for('doctor.view_visit', visit_id=visit.id) }}" class="btn btn-sm btn-primary">
+                                                    <i class="fas fa-eye"></i> التفاصيل
+                                                </a>
+                                                {% if visit.prescription %}
+                                                <a href="{{ url_for('static', filename=visit.prescription.pdf_file) }}" class="btn btn-sm btn-success" target="_blank">
+                                                    <i class="fas fa-file-pdf"></i> الوصفة
+                                                </a>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="alert alert-info">
+                            <p class="mb-0">لا توجد زيارات مسجلة لهذا المريض</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock content %}

@@ -1,0 +1,1339 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <!-- Bootstrap RTL CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Cairo Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
+    <!-- Animate.css for animations -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/main.css') }}">
+
+    <title>صالة الانتظار | ClinicEase</title>
+
+    <!-- أنماط خاصة بصفحة الانتظار -->
+    <style>
+        :root {
+            --primary-color: #1e3a8a; /* أزرق داكن */
+            --secondary-color: #3b82f6; /* أزرق فاتح */
+            --accent-color: #ef4444; /* أحمر */
+            --light-color: #f3f4f6; /* رمادي فاتح */
+            --dark-color: #1f2937; /* رمادي داكن */
+            --success-color: #27ae60; /* أخضر */
+            --warning-color: #f59e0b; /* برتقالي */
+            --info-color: #6366f1; /* بنفسجي */
+            --ticket-font-size: calc(4rem + 4vw); /* تحسين حجم رقم التذكرة */
+            --patient-name-font-size: calc(1.5rem + 1.5vw); /* تحسين حجم اسم المريض */
+            --card-border-radius: 0.75rem;
+            --transition-speed: 0.3s;
+        }
+        
+        body, html {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            font-family: 'Cairo', sans-serif;
+            background: linear-gradient(135deg, var(--light-color) 0%, #ffffff 100%);
+            color: var(--dark-color);
+        }
+        
+        .fullscreen-container {
+            height: 100vh;
+            width: 100vw;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 0.5rem;
+            background-color: transparent;
+            overflow: hidden;
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+            70% { transform: scale(1.05); box-shadow: 0 0 0 15px rgba(239, 68, 68, 0); }
+            100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+        }
+        
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+            100% { transform: translateY(0px); }
+        }
+        
+        .flashing {
+            animation: pulse 2s infinite;
+            background: linear-gradient(45deg, var(--accent-color), #b91c1c);
+            color: white;
+        }
+        
+        .ticket-current {
+            font-size: var(--ticket-font-size);
+            font-weight: bold;
+            padding: 1rem;
+            border-radius: var(--card-border-radius);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+            transition: all var(--transition-speed) ease;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            overflow: hidden;
+            margin: 0 auto;
+            max-width: 90%;
+            line-height: 1;
+            min-height: 120px;
+        }
+        
+        .ticket-current::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(45deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 100%);
+            z-index: 1;
+        }
+        
+        .ticket-heading {
+            font-size: calc(1rem + 0.8vw);
+            margin-bottom: 0.5rem;
+            color: var(--primary-color);
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+            font-weight: 700;
+            opacity: 0.9;
+        }
+        
+        .ticket-patient-name {
+            font-size: var(--patient-name-font-size);
+            margin-top: 0.3rem;
+            margin-bottom: 0.5rem;
+            color: var(--secondary-color);
+            font-weight: 600;
+            text-align: center;
+            transition: all var(--transition-speed) ease;
+            display: block;
+            max-width: 90%;
+            margin-left: auto;
+            margin-right: auto;
+            line-height: 1.2;
+            text-shadow: 1px 1px 3px rgba(0,0,0,0.1);
+        }
+        
+        .ticket-direction {
+            font-size: calc(0.8rem + 0.5vw);
+            margin-top: 0.5rem;
+            transition: all var(--transition-speed) ease;
+            transform: translateY(0);
+            animation: float 3s ease-in-out infinite;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+        
+        .waiting-table {
+            font-size: calc(0.7rem + 0.5vw);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+            border-radius: var(--card-border-radius);
+            overflow: hidden;
+        }
+        
+        .clinic-logo {
+            position: absolute;
+            top: 1rem;
+            left: 1rem;
+            font-size: calc(1rem + 0.5vw);
+            color: var(--secondary-color);
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            padding: 0.5rem 1rem;
+            background-color: rgba(255, 255, 255, 0.95);
+            border-radius: 50px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+            transition: all var(--transition-speed) ease;
+            z-index: 10;
+        }
+        
+        .clinic-logo:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        
+        .card {
+            border: none;
+            border-radius: var(--card-border-radius);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            overflow: hidden;
+            transition: all var(--transition-speed) ease;
+            background-color: rgba(255, 255, 255, 0.95);
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.15);
+        }
+        
+        .card-header {
+            background: linear-gradient(45deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            border-bottom: none;
+            padding: 0.5rem;
+            font-weight: 600;
+        }
+        
+        .table {
+            margin-bottom: 0;
+        }
+        
+        .table th {
+            border-top: none;
+            color: var(--primary-color);
+            font-weight: 700;
+            padding: 0.5rem;
+        }
+        
+        .table td {
+            padding: 0.5rem;
+            vertical-align: middle;
+        }
+        
+        .badge {
+            padding: 0.5em 1em;
+            font-size: 0.85em;
+            border-radius: 50px;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .bg-warning {
+            background-color: var(--warning-color) !important;
+        }
+        
+        .bg-success {
+            background-color: var(--success-color) !important;
+        }
+        
+        .bg-info {
+            background-color: var(--info-color) !important;
+            color: white;
+        }
+        
+        /* تحسينات للتجاوب مع الشاشات المختلفة */
+        @media (max-width: 768px) {
+            .fullscreen-container {
+                padding: 0.3rem;
+            }
+            
+            .ticket-current {
+                padding: 0.8rem;
+                margin-bottom: 0.5rem;
+                min-height: 80px;
+            }
+            
+            .ticket-direction {
+                margin-top: 0.3rem;
+            }
+            
+            :root {
+                --ticket-font-size: calc(3rem + 3vw);
+                --patient-name-font-size: calc(1.2rem + 1.2vw);
+            }
+        }
+        
+        /* تحسينات للشاشات الصغيرة جدًا */
+        @media (max-width: 576px) {
+            .fullscreen-container {
+                padding: 0.2rem;
+            }
+            
+            .ticket-heading {
+                margin-bottom: 0.3rem;
+            }
+            
+            .clinic-logo {
+                font-size: 0.9rem;
+                padding: 0.2rem 0.5rem;
+            }
+            
+            :root {
+                --ticket-font-size: calc(2.5rem + 2.5vw);
+                --patient-name-font-size: calc(1rem + 1vw);
+            }
+        }
+        
+        /* تحسينات للشاشات الكبيرة */
+        @media (min-width: 1200px) {
+            :root {
+                --ticket-font-size: calc(5rem + 2vw);
+                --patient-name-font-size: calc(2rem + 1vw);
+            }
+            
+            .ticket-current {
+                min-height: 150px;
+            }
+        }
+        
+        /* تحسينات خاصة للشاشة الكاملة */
+        :fullscreen .fullscreen-container,
+        :-webkit-full-screen .fullscreen-container,
+        :-moz-full-screen .fullscreen-container,
+        :-ms-fullscreen .fullscreen-container {
+            padding: 0.3rem;
+        }
+        
+        :fullscreen .ticket-current,
+        :-webkit-full-screen .ticket-current,
+        :-moz-full-screen .ticket-current,
+        :-ms-fullscreen .ticket-current {
+            min-height: 120px;
+        }
+        
+        /* تحسينات للوضع العمودي */
+        .portrait-mode .fullscreen-container {
+            padding: 0.2rem;
+        }
+        
+        .portrait-mode .ticket-current {
+            min-height: 100px;
+            padding: 0.8rem;
+        }
+        
+        .portrait-mode .card-body {
+            padding: 0.3rem !important;
+        }
+        
+        /* تحسينات للوضع الأفقي */
+        .landscape-mode .ticket-current {
+            min-height: 120px;
+        }
+        
+        /* تحسينات للشاشات القصيرة */
+        @media (max-height: 600px) {
+            .fullscreen-container {
+                padding: 0.2rem;
+            }
+            
+            .ticket-current {
+                min-height: 80px;
+                padding: 0.5rem;
+            }
+            
+            .ticket-heading {
+                margin-bottom: 0.2rem;
+            }
+            
+            .ticket-patient-name {
+                margin-top: 0.2rem;
+                margin-bottom: 0.3rem;
+            }
+            
+            .ticket-direction {
+                margin-top: 0.3rem;
+            }
+            
+            .card-body {
+                padding: 0.3rem !important;
+            }
+            
+            footer {
+                padding: 0.2rem !important;
+            }
+        }
+        
+        /* تنسيق زر ملء الشاشة */
+        #fullscreen-btn {
+            background: linear-gradient(45deg, var(--secondary-color), #2980b9);
+            border: none;
+            border-radius: 50px;
+            padding: 0.5rem 1.2rem;
+            font-weight: 600;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+            color: white;
+        }
+        
+        #fullscreen-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        
+        #fullscreen-btn:active {
+            transform: translateY(-1px);
+        }
+        
+        /* تنسيق زر إعادة المناداة */
+        #repeat-announcement-btn {
+            background: linear-gradient(45deg, var(--warning-color), #e67e22);
+            border: none;
+            border-radius: 50px;
+            padding: 0.5rem 1.2rem;
+            font-weight: 600;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+            color: white;
+        }
+        
+        #repeat-announcement-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            background: linear-gradient(45deg, #e67e22, var(--warning-color));
+        }
+        
+        #repeat-announcement-btn:active {
+            transform: translateY(-1px);
+        }
+        
+        #repeat-announcement-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        /* تنسيق مربع رقم آخر تذكرة */
+        #last-ticket-number {
+            color: var(--primary-color);
+            font-size: calc(1.5rem + 1vw);
+            font-weight: 700;
+            text-shadow: 1px 1px 3px rgba(0,0,0,0.1);
+            margin: 0.2rem 0;
+            transition: all 0.3s ease;
+        }
+        
+        /* تنسيق مربع عدد المرضى في الانتظار */
+        #waiting-count {
+            color: var(--success-color);
+            font-size: calc(1.5rem + 1vw);
+            font-weight: 700;
+            text-shadow: 1px 1px 3px rgba(0,0,0,0.1);
+            margin: 0.2rem 0;
+            transition: all 0.3s ease;
+        }
+        
+        .card-header.bg-primary {
+            background: linear-gradient(45deg, var(--primary-color), #3498db) !important;
+            border: none;
+            color: white;
+            font-weight: 600;
+        }
+        
+        .card-header.bg-success {
+            background: linear-gradient(45deg, var(--success-color), #2ecc71) !important;
+            border: none;
+            color: white;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div class="clinic-logo animate__animated animate__fadeIn animate__delay-1s">
+         <i class="fas fa-hospital-user me-2"></i>ClinicEase
+    </div>
+     
+    <div class="position-absolute top-0 end-0 m-3 animate__animated animate__fadeIn animate__delay-1s">
+        <div class="d-flex gap-2">
+            <button id="repeat-announcement-btn" onclick="repeatCurrentAnnouncement()" class="btn btn-warning btn-sm" title="إعادة المناداة">
+                <i class="fas fa-volume-up me-1"></i> إعادة المناداة
+            </button>
+            <button id="fullscreen-btn" onclick="toggleFullScreen()">
+                <i class="fas fa-expand me-1"></i> ملء الشاشة
+            </button>
+        </div>
+    </div>
+
+    <div class="fullscreen-container">
+        <div class="container-fluid d-flex flex-column h-100">
+            <!-- تنبيه الأولوية -->
+            <div class="row mb-2">
+                <div class="col-12">
+                    <div class="alert alert-warning text-center py-2 mb-0 animate__animated animate__pulse animate__infinite" style="background: linear-gradient(45deg, #f39c12, #e67e22); border: none; color: white; font-weight: bold; border-radius: 15px;">
+                        <i class="fas fa-star me-2"></i>
+                        التذاكر ذات الأولوية (المواعيد) يتم استدعاؤها أولاً
+                        <i class="fas fa-star ms-2"></i>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- عرض رقم التذكرة الحالية بشكل كبير في وسط الشاشة -->
+            {% if current_ticket %}
+            <div class="row justify-content-center align-items-center" style="flex: 1; min-height: 0;">
+                <div class="col-12 text-center d-flex flex-column justify-content-center align-items-center">
+                    <div class="ticket-heading mb-2"><i class="fas fa-ticket-alt me-2"></i>التذكرة الحالية</div>
+                    <div class="ticket-current flashing mb-2" id="currentTicket" data-ticket-number="{{ current_ticket.number }}" data-patient-name="{{ current_ticket.patient.full_name }}">{{ current_ticket.number }}</div>
+                    <div class="ticket-patient-name animate__animated animate__fadeIn mb-2" id="currentPatientName"></div>
+                    <div class="badge bg-success ticket-direction p-2 animate__animated animate__pulse animate__infinite">
+                        <i class="fas fa-door-open"></i> يرجى الدخول للفحص
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <div class="row animate__animated animate__fadeInUp animate__delay-1s" style="flex: 0 0 auto;">
+                <div class="col-12">
+                    <div class="card mb-1 shadow-sm">
+                    <div class="card-header py-1">
+                        <h6 class="m-0 small"><i class="fas fa-users-between-lines me-1"></i>المرضى في الانتظار</h6>
+                    </div>
+                    <div class="card-body p-1">
+                        {% if waiting_tickets %}
+                            <div class="table-responsive" id="waiting-table-container">
+                                <table class="table table-sm table-hover waiting-table mb-0">
+                                    <thead>
+                                        <tr class="small">
+                                            <th class="text-center py-1"><i class="fas fa-hashtag"></i></th>
+                                            <th class="py-1"><i class="fas fa-ticket-alt me-1"></i>رقم التذكرة</th>
+                                            <th class="py-1"><i class="fas fa-user me-1"></i>اسم المريض</th>
+                                        </tr>
+                                    </thead>    
+                                    <tbody id="waiting-tickets-body">
+                                        {% for ticket in waiting_tickets %}
+                                        <tr class="animate__animated animate__fadeIn" style="animation-delay: {{ loop.index0 * 0.1 }}s">
+                                            <td class="text-center py-1">{{ loop.index }}</td>
+                                            <td class="fs-5 fw-bold py-1">{{ ticket.number }}</td>
+                                            <td class="py-1">{{ ticket.patient.full_name }}</td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        {% else %}
+                            <div class="alert alert-info py-1 mb-0 animate__animated animate__fadeIn" id="no-patients-message">
+                                <p class="text-center mb-0 small"><i class="fas fa-info-circle me-1"></i>لا يوجد مرضى في قائمة الانتظار حاليًا.</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <!-- إضافة قسم معلومات إضافية -->
+                <div class="card mt-1 animate__animated animate__fadeIn shadow-sm">
+                    <div class="card-header py-1">
+                        <h6 class="m-0 small"><i class="fas fa-info-circle me-2"></i>معلومات إضافية</h6>
+                    </div>
+                    <div class="card-body p-1 text-center">
+                        <div class="row g-1 justify-content-center">
+                            <!-- مربع عرض رقم آخر تذكرة -->
+                            <div class="col-6">
+                                <div class="card bg-light h-100 shadow-sm">
+                                    <div class="card-header bg-primary text-white py-1">
+                                        <h6 class="m-0 small"><i class="fas fa-ticket-alt me-1"></i>آخر تذكرة</h6>
+                                    </div>
+                                    <div class="card-body p-1 d-flex align-items-center justify-content-center">
+                                        <div class="fw-bold mb-0" id="last-ticket-number">-</div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- مربع عدد المرضى في الانتظار -->
+                            <div class="col-6">
+                                <div class="card bg-light h-100 shadow-sm">
+                                    <div class="card-header bg-success text-white py-1">
+                                        <h6 class="m-0 small"><i class="fas fa-users me-1"></i>عدد المنتظرين</h6>
+                                    </div>
+                                    <div class="card-body p-1 d-flex align-items-center justify-content-center">
+                                        <div class="fw-bold mb-0" id="waiting-count">0</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="d-flex flex-wrap justify-content-center align-items-center mt-1 small">
+                            <div class="mx-1">
+                                <i class="fas fa-info-circle me-1 text-primary"></i>
+                                تحديث كل <span class="fw-bold">5</span> ثوانٍ
+                            </div>
+                            <div class="mx-1 d-none d-md-block">|</div>
+                            <div class="mx-1">
+                                <i class="fas fa-clock me-1 text-secondary"></i>
+                                آخر تحديث: <span id="last-update-time" class="fw-bold">--:--:--</span>
+                            </div>
+                            <div id="loading-indicator" style="display: none;" class="ms-1">
+                                <div class="spinner-border spinner-border-sm text-primary" role="status" style="width: 0.75rem; height: 0.75rem;">
+                                    <span class="visually-hidden">جاري التحميل...</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- إضافة تذييل الصفحة -->
+        <footer class="mt-1 py-1 text-center animate__animated animate__fadeIn" style="flex: 0 0 auto;">
+            <div class="text-muted">
+                <small>© ClinicEase <span id="current-year"></span> | نظام إدارة العيادات</small>
+            </div>
+        </footer>
+        <script>
+            // تحديث السنة الحالية
+            document.getElementById('current-year').textContent = new Date().getFullYear();
+        </script>
+    </div>
+
+    <!-- Bootstrap JS Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Moment.js with Arabic locale -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.4/moment.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.4/locale/ar.js"></script>
+    <!-- إضافة سكربت تحويل الأرقام إلى كلمات عربية -->
+    <script src="{{ url_for('static', filename='arabic_tts.js') }}"></script>
+
+    <script>
+        // معرف التذكرة الحالية للمقارنة
+        let lastTicketNumber = null;
+        let lastPatientName = null;
+        let lastWaitingCount = null;
+        let updateTimer;
+        let updateInterval = 5000; // 5 ثوانٍ للتحديث السريع
+
+        // وظيفة لفحص وجود تذكرة جديدة
+        function checkForNewTicket() {
+            // إظهار مؤشر التحميل
+            const loadingIndicator = document.getElementById('loading-indicator');
+            if (loadingIndicator) loadingIndicator.style.display = 'inline-block';
+            
+            fetch('{{ url_for("main.api_waiting_data") }}')
+                .then(response => response.json())
+                .then(data => {
+                    console.log('تم استلام البيانات:', data);
+                    
+                    if (data.current_ticket) {
+                        const currentTicketElement = document.getElementById('currentTicket');
+                        const currentPatientNameElement = document.getElementById('currentPatientName');
+                        const newTicketNumber = data.current_ticket.number;
+                        
+                        // الحصول على اسم المريض بطريقة آمنة
+                        let patientName = 'غير معروف';
+                        if (data.current_ticket.patient_name) {
+                            patientName = data.current_ticket.patient_name;
+                        } else if (data.current_ticket.patient && data.current_ticket.patient.full_name) {
+                            patientName = data.current_ticket.patient.full_name;
+                        }
+                        
+                        console.log('معلومات التذكرة الحالية:', { رقم: newTicketNumber, اسم: patientName });
+                        
+                        // تحديث رقم التذكرة واسم المريض في العرض مع تأثير حركي
+                        if (currentTicketElement && currentPatientNameElement) {
+                            // إذا كان هناك تذكرة جديدة أو تغيير في اسم المريض، أضف تأثير حركي
+                            if ((lastTicketNumber !== null && lastTicketNumber !== newTicketNumber) || 
+                                (lastPatientName !== null && lastPatientName !== patientName)) {
+                                // إزالة التأثيرات الحالية
+                                currentTicketElement.classList.remove('animate__animated', 'animate__pulse');
+                                currentPatientNameElement.classList.remove('animate__animated', 'animate__fadeIn');
+                                
+                                // إعادة تطبيق التأثير بعد فترة قصيرة (لإعادة تشغيل التأثير)
+                                setTimeout(() => {
+                                    currentTicketElement.classList.add('animate__animated', 'animate__pulse');
+                                    currentPatientNameElement.classList.add('animate__animated', 'animate__fadeIn');
+                                    currentTicketElement.textContent = newTicketNumber;
+                                    currentTicketElement.dataset.ticketNumber = newTicketNumber;
+                                    currentPatientNameElement.textContent = patientName;
+                                    currentPatientNameElement.dataset.patientName = patientName;
+                                    
+                                    // تشغيل الإعلان الصوتي للتذكرة واسم المريض
+                                    playTicketAndPatientAnnouncement(newTicketNumber, patientName).catch((error) => {
+                                        console.error('خطأ في تشغيل الإعلان الصوتي:', error);
+                                    });
+                                    
+                                    console.log(`تم استدعاء المريض: ${patientName} - رقم التذكرة: ${newTicketNumber}`);
+                                }, 50);
+                            } else {
+                                currentTicketElement.textContent = newTicketNumber;
+                                currentTicketElement.dataset.ticketNumber = newTicketNumber;
+                                currentPatientNameElement.textContent = patientName;
+                                currentPatientNameElement.dataset.patientName = patientName;
+                            }
+                        }
+                        
+                        // تحديث المعرفات للمقارنة في المرة القادمة
+                        lastTicketNumber = newTicketNumber;
+                        lastPatientName = patientName;
+                    }
+                    
+                    // تحديث قائمة الانتظار مباشرة من نفس البيانات
+                    updateWaitingTable(data.waiting_tickets);
+                    
+                    // تحديث عداد المرضى في الانتظار
+                    const waitingCountElement = document.getElementById('waiting-count');
+                    if (waitingCountElement) {
+                        waitingCountElement.textContent = data.waiting_tickets ? data.waiting_tickets.length : 0;
+                        
+                        // إضافة تأثير حركي عند تغيير العدد
+                        const waitingCount = data.waiting_tickets ? data.waiting_tickets.length : 0;
+                        if (lastWaitingCount !== waitingCount) {
+                            waitingCountElement.classList.remove('animate__animated', 'animate__pulse');
+                            setTimeout(() => {
+                                waitingCountElement.classList.add('animate__animated', 'animate__pulse');
+                            }, 50);
+                            lastWaitingCount = waitingCount;
+                        }
+                    }
+                    
+                    // إخفاء مؤشر التحميل
+                    if (loadingIndicator) loadingIndicator.style.display = 'none';
+                    
+                    // تحديث وقت آخر تحديث
+                    updateLastRefreshTime();
+                })
+                .catch(error => {
+                    console.error('خطأ في جلب بيانات التذكرة:', error);
+                    // إخفاء مؤشر التحميل في حالة الخطأ
+                    if (loadingIndicator) loadingIndicator.style.display = 'none';
+                });
+        }
+
+        // وظيفة لتحديث جدول الانتظار
+        function updateWaitingTable(tickets) {
+            const tableBody = document.getElementById('waiting-tickets-body');
+            const alertInfo = document.getElementById('no-patients-message');
+            const tableContainer = document.getElementById('waiting-table-container');
+            const lastTicketDisplay = document.getElementById('last-ticket-number');
+            
+            if (!tableBody) {
+                console.error('لم يتم العثور على عنصر جدول الانتظار');
+                return;
+            }
+            
+            // تحديث رقم آخر تذكرة إذا كانت هناك تذاكر
+            if (tickets && tickets.length > 0) {
+                // الحصول على آخر تذكرة في القائمة
+                const lastTicket = tickets[tickets.length - 1];
+                if (lastTicketDisplay && lastTicket) {
+                    lastTicketDisplay.textContent = lastTicket.number;
+                }
+                
+                // إخفاء رسالة "لا يوجد مرضى"
+                if (alertInfo) {
+                    alertInfo.style.display = 'none';
+                }
+                
+                if (tableContainer) {
+                    tableContainer.style.display = 'block';
+                }
+                
+                // إنشاء صفوف الجدول الجديدة مع تأثيرات حركية
+                // عرض فقط أول تذكرتين بعد التذكرة الحالية
+                let tableContent = '';
+                const ticketsToShow = tickets.slice(0, 2); // عرض أول تذكرتين فقط
+                console.log('عرض التذاكر:', ticketsToShow);
+                
+                ticketsToShow.forEach((ticket, index) => {
+                    // إضافة تأخير متزايد لكل صف لإنشاء تأثير متتابع
+                    const animationDelay = `style="animation-delay: ${index * 0.1}s"`;
+                    
+                    // الحصول على اسم المريض من البيانات بطريقة آمنة
+                    let patientName = 'غير معروف';
+                    if (ticket.patient_name) {
+                        patientName = ticket.patient_name;
+                    } else if (ticket.patient && ticket.patient.full_name) {
+                        patientName = ticket.patient.full_name;
+                    }
+                    
+                    tableContent += `
+                        <tr class="animate__animated animate__fadeIn" ${animationDelay}>
+                            <td class="text-center py-1">${index + 1}</td>
+                            <td class="fs-4 fw-bold py-1">${ticket.number}</td>
+                            <td class="py-1">${patientName}</td>
+                        </tr>
+                    `;
+                });
+                
+                // تطبيق التغييرات مع تأثير حركي
+                tableBody.innerHTML = tableContent;
+            } else {
+                // عرض رسالة "لا يوجد مرضى"
+                if (tableContainer) {
+                    tableContainer.style.display = 'none';
+                }
+                
+                if (alertInfo) {
+                    alertInfo.style.display = 'block';
+                    // تأكد من وجود التأثير الحركي
+                    if (!alertInfo.classList.contains('animate__animated')) {
+                        alertInfo.classList.add('animate__animated', 'animate__fadeIn');
+                    } else {
+                        alertInfo.classList.remove('animate__fadeIn');
+                        void alertInfo.offsetWidth; // إعادة تشغيل التأثير
+                        alertInfo.classList.add('animate__fadeIn');
+                    }
+                }
+                
+                tableBody.innerHTML = '';
+                console.log('لا توجد تذاكر في الانتظار');
+                
+                // إعادة تعيين رقم آخر تذكرة
+                if (lastTicketDisplay) {
+                    lastTicketDisplay.textContent = '-';
+                }
+            }
+        }
+        
+        // وظيفة لتحديث وقت آخر تحديث
+        function updateLastRefreshTime() {
+            const lastUpdateElement = document.getElementById('last-update-time');
+            if (lastUpdateElement) {
+                const now = moment();
+                lastUpdateElement.textContent = now.format('HH:mm:ss');
+                lastUpdateElement.setAttribute('title', now.format('YYYY-MM-DD HH:mm:ss'));
+            }
+        }
+
+        // وظيفة لتحويل الأرقام إلى كلمات عربية
+        function numberToArabicWords(number) {
+            const arabicNumbers = [
+                'صفر', 'واحد', 'اثنان', 'ثلاثة', 'أربعة', 'خمسة', 'ستة', 'سبعة', 'ثمانية', 'تسعة',
+                'عشرة', 'أحد عشر', 'اثنا عشر', 'ثلاثة عشر', 'أربعة عشر', 'خمسة عشر', 'ستة عشر', 'سبعة عشر', 'ثمانية عشر', 'تسعة عشر'
+            ];
+            
+            const tens = [
+                '', '', 'عشرون', 'ثلاثون', 'أربعون', 'خمسون', 'ستون', 'سبعون', 'ثمانون', 'تسعون'
+            ];
+            
+            // تحويل الرقم إلى نص
+            number = number.toString();
+            
+            // للأرقام من 0 إلى 19
+            if (number < 20) {
+                return arabicNumbers[number];
+            }
+            // للأرقام من 20 إلى 99
+            else if (number < 100) {
+                const digit1 = parseInt(number[0]);
+                const digit2 = parseInt(number[1]);
+                
+                if (digit2 === 0) {
+                    return tens[digit1];
+                } else {
+                    return arabicNumbers[digit2] + ' و' + tens[digit1];
+                }
+            }
+            // للأرقام من 100 فما فوق، نعيد الرقم كما هو
+            else {
+                return number;
+            }
+        }
+        
+        // وظيفة لتشغيل إعلان صوتي للتذكرة
+        function playTicketAndPatientAnnouncement(ticketNumber) {
+            return new Promise((resolve, reject) => {
+                console.log('استلام رقم التذكرة للمناداة:', ticketNumber);
+                
+                // تحويل الرقم إلى كلمات عربية
+                const ticketInArabic = numberToArabicWords(ticketNumber);
+                console.log('الرقم بالعربية:', ticketInArabic);
+                
+                // إنشاء نص الإعلان بالرقم فقط
+                const announcement = `التذكرة رقم ${ticketInArabic} فليتوجه إلى قاعة الفحص`;
+                
+                console.log('النص الكامل للإعلان:', announcement);
+                
+                // تشغيل صوت التنبيه أولاً
+                playNotificationSound().then(() => {
+                    // تشغيل الإعلان الأول
+                    speakAnnouncement(announcement).then(() => {
+                        // انتظار ثانية واحدة ثم تكرار الإعلان
+                        setTimeout(() => {
+                            speakAnnouncement(announcement).then(() => {
+                                resolve();
+                            }).catch((error) => {
+                                console.error('خطأ في الإعلان الثاني:', error);
+                                resolve(); // نكمل حتى لو فشل الإعلان الثاني
+                            });
+                        }, 1000);
+                    }).catch((error) => {
+                        console.error('خطأ في الإعلان الأول:', error);
+                        reject(error);
+                    });
+                }).catch(() => {
+                    // في حالة فشل تشغيل صوت التنبيه، تشغيل الإعلان مباشرة
+                    speakAnnouncement(announcement).then(() => {
+                        setTimeout(() => {
+                            speakAnnouncement(announcement).then(() => {
+                                resolve();
+                            }).catch((error) => {
+                                console.error('خطأ في الإعلان الثاني:', error);
+                                resolve(); // نكمل حتى لو فشل الإعلان الثاني
+                            });
+                        }, 1000);
+                    }).catch((error) => {
+                        console.error('خطأ في الإعلان الأول:', error);
+                        reject(error);
+                    });
+                });
+            });
+        }
+        
+        // وظيفة لتشغيل صوت التنبيه
+        function playNotificationSound() {
+            return new Promise((resolve, reject) => {
+                try {
+                    const audio = new Audio('/static/sounds/notification.mp3');
+                    audio.volume = 0.8;
+                    
+                    audio.onended = () => {
+                        resolve();
+                    };
+                    
+                    audio.onerror = () => {
+                        console.warn('لم يتم العثور على ملف صوت التنبيه، استخدام صوت بديل');
+                        // استخدام صوت بديل مولد بـ Web Audio API
+                        playBeepSound().then(resolve).catch(reject);
+                    };
+                    
+                    audio.play().catch(() => {
+                        console.warn('فشل في تشغيل صوت التنبيه، استخدام صوت بديل');
+                        // استخدام صوت بديل مولد بـ Web Audio API
+                        playBeepSound().then(resolve).catch(reject);
+                    });
+                } catch (error) {
+                    console.warn('خطأ في تشغيل صوت التنبيه، استخدام صوت بديل:', error);
+                    // استخدام صوت بديل مولد بـ Web Audio API
+                    playBeepSound().then(resolve).catch(reject);
+                }
+            });
+        }
+        
+        // وظيفة لتشغيل صوت تنبيه بديل باستخدام Web Audio API
+        function playBeepSound() {
+            return new Promise((resolve, reject) => {
+                try {
+                    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    const oscillator = audioContext.createOscillator();
+                    const gainNode = audioContext.createGain();
+                    
+                    oscillator.connect(gainNode);
+                    gainNode.connect(audioContext.destination);
+                    
+                    oscillator.frequency.setValueAtTime(800, audioContext.currentTime); // تردد 800 هرتز
+                    oscillator.type = 'sine';
+                    
+                    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+                    
+                    oscillator.start(audioContext.currentTime);
+                    oscillator.stop(audioContext.currentTime + 0.5);
+                    
+                    oscillator.onended = () => {
+                        audioContext.close();
+                        resolve();
+                    };
+                    
+                    setTimeout(() => {
+                        resolve();
+                    }, 600);
+                    
+                } catch (error) {
+                    console.warn('فشل في تشغيل الصوت البديل:', error);
+                    resolve(); // نكمل حتى لو فشل الصوت
+                }
+            });
+        }
+        
+        // وظيفة مساعدة لنطق النص باستخدام Web Speech API
+        function speakAnnouncement(text) {
+            return new Promise((resolve, reject) => {
+                console.log('بدء نطق النص:', text);
+                
+                // التأكد من أن Speech Synthesis متاح
+                if (!window.speechSynthesis) {
+                    console.error('Speech Synthesis غير متاح في هذا المتصفح');
+                    reject('Speech Synthesis غير متاح');
+                    return;
+                }
+                
+                // إيقاف أي كلام سابق
+                window.speechSynthesis.cancel();
+                
+                // انتظار قصير للتأكد من إيقاف الكلام السابق
+                setTimeout(() => {
+                    // استخدام واجهة برمجة الكلام لنطق الإعلان
+                    const speech = new SpeechSynthesisUtterance(text);
+                    speech.lang = 'ar-SA';
+                    speech.rate = 0.7; // سرعة أبطأ للوضوح
+                    speech.volume = 1.0; // أعلى صوت
+                    speech.pitch = 1.0; // نبرة طبيعية
+                
+                    // إضافة مستمعي الأحداث
+                    speech.onend = () => {
+                        console.log('انتهى الإعلان الصوتي');
+                        resolve();
+                    };
+                    
+                    speech.onerror = (event) => {
+                        console.error('خطأ في الإعلان الصوتي:', event.error);
+                        reject(event.error);
+                    };
+                    
+                    // إضافة timeout للتأكد من انتهاء النطق
+                    setTimeout(() => {
+                        console.log('انتهت مهلة النطق');
+                        resolve();
+                    }, 10000); // 10 ثوان كحد أقصى
+                    
+                    // الحصول على قائمة الأصوات المتاحة
+                    let voices = window.speechSynthesis.getVoices();
+                    
+                    // إذا كانت قائمة الأصوات فارغة، انتظر حتى يتم تحميلها
+                    if (voices.length === 0) {
+                        window.speechSynthesis.onvoiceschanged = function() {
+                            voices = window.speechSynthesis.getVoices();
+                            setArabicVoiceAndSpeak();
+                        };
+                    } else {
+                        setArabicVoiceAndSpeak();
+                    }
+                    
+                    // وظيفة لتعيين الصوت العربي إذا كان متاحًا
+                    function setArabicVoiceAndSpeak() {
+                        const arabicVoice = voices.find(voice => 
+                            voice.lang.includes('ar') || 
+                            voice.name.includes('Arabic') || 
+                            voice.name.includes('العربية'));
+                        
+                        if (arabicVoice) {
+                            speech.voice = arabicVoice;
+                            console.log('تم استخدام صوت عربي:', arabicVoice.name);
+                        } else {
+                            console.log('لم يتم العثور على صوت عربي، استخدام الصوت الافتراضي');
+                        }
+                        
+                        // تشغيل الإعلان الصوتي
+                        try {
+                            console.log('تشغيل النطق...');
+                            window.speechSynthesis.speak(speech);
+                        } catch (error) {
+                            console.error('فشل في تشغيل الإعلان الصوتي:', error);
+                            reject(error);
+                        }
+                    }
+                }, 100); // انتظار 100ms قبل البدء
+            });
+        }
+        
+        // وظيفة لإعادة المناداة يدوياً
+        function repeatCurrentAnnouncement() {
+            const currentTicketElement = document.getElementById('currentTicket');
+            const currentPatientNameElement = document.getElementById('currentPatientName');
+            const repeatBtn = document.getElementById('repeat-announcement-btn');
+            
+            if (currentTicketElement && currentPatientNameElement) {
+                const ticketNumber = currentTicketElement.dataset.ticketNumber || currentTicketElement.textContent;
+                const patientName = currentPatientNameElement.dataset.patientName || currentPatientNameElement.textContent;
+                
+                if (ticketNumber && patientName && ticketNumber !== '' && patientName !== '') {
+                    console.log('إعادة المناداة:', { ticketNumber, patientName });
+                    
+                    // تعطيل الزر مؤقتاً لمنع النقر المتكرر
+                    if (repeatBtn) {
+                        repeatBtn.disabled = true;
+                        repeatBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> جاري المناداة...';
+                    }
+                    
+                    playTicketAndPatientAnnouncement(ticketNumber).finally(() => {
+                        // إعادة تفعيل الزر بعد انتهاء المناداة
+                        if (repeatBtn) {
+                            setTimeout(() => {
+                                repeatBtn.disabled = false;
+                                repeatBtn.innerHTML = '<i class="fas fa-volume-up me-1"></i> إعادة المناداة';
+                            }, 8000); // 8 ثوان لإنهاء المناداة مرتين
+                        }
+                    });
+                } else {
+                    console.warn('لا توجد تذكرة حالية لإعادة المناداة');
+                    alert('لا توجد تذكرة حالية لإعادة المناداة');
+                }
+            } else {
+                console.warn('لا توجد تذكرة حالية لإعادة المناداة');
+                alert('لا توجد تذكرة حالية لإعادة المناداة');
+            }
+        }
+        
+
+        // وظيفة لبدء التحديث الدوري
+        function startPeriodicUpdates() {
+            // تنظيف أي مؤقت سابق
+            if (updateTimer) {
+                clearInterval(updateTimer);
+            }
+            
+            // تحديث أولي
+            checkForNewTicket();
+            
+            // بدء التحديث الدوري - تقليل وقت التحديث من 10 ثوانٍ إلى 5 ثوانٍ
+            updateInterval = 5000; // تقليل وقت التحديث لضمان استجابة أسرع
+            updateTimer = setInterval(checkForNewTicket, updateInterval);
+            
+            // تحديث عداد العد التنازلي
+            startCountdown();
+        }
+        
+        // وظيفة لعرض العد التنازلي للتحديث التالي
+        function startCountdown() {
+            const countdownElement = document.getElementById('countdown-seconds');
+            if (!countdownElement) return;
+            
+            let secondsLeft = updateInterval / 1000;
+            
+            // تحديث العداد كل ثانية
+            const countdownTimer = setInterval(() => {
+                secondsLeft--;
+                countdownElement.textContent = secondsLeft;
+                
+                if (secondsLeft <= 0) {
+                    clearInterval(countdownTimer);
+                }
+            }, 1000);
+        }
+        
+        // وظيفة لتبديل وضع ملء الشاشة
+         function toggleFullScreen() {
+             const doc = window.document;
+             const docEl = doc.documentElement;
+             const fullscreenBtn = document.getElementById('fullscreen-btn');
+             
+             const requestFullScreen = docEl.requestFullscreen || docEl.mozRequestFullScreen ||
+                                      docEl.webkitRequestFullScreen || docEl.msRequestFullscreen;
+             const exitFullScreen = doc.exitFullscreen || doc.mozCancelFullScreen ||
+                                   doc.webkitExitFullscreen || doc.msExitFullscreen;
+             
+             if (!doc.fullscreenElement && !doc.mozFullScreenElement &&
+                !doc.webkitFullscreenElement && !doc.msFullscreenElement) {
+                 // تفعيل وضع ملء الشاشة
+                 requestFullScreen.call(docEl);
+                 fullscreenBtn.innerHTML = '<i class="fas fa-compress"></i> إلغاء ملء الشاشة';
+             } else {
+                 // إلغاء وضع ملء الشاشة
+                 exitFullScreen.call(doc);
+                 fullscreenBtn.innerHTML = '<i class="fas fa-expand"></i> ملء الشاشة';
+             }
+         }
+         
+         // وظيفة لبدء الاستماع للإشعارات الصوتية من السيرفر
+         function startAnnouncementListener() {
+             console.log('بدء الاستماع للإشعارات الصوتية...');
+             
+             // إنشاء اتصال Server-Sent Events
+             const eventSource = new EventSource('/api/announcement-stream');
+             
+             eventSource.onopen = function(event) {
+                 console.log('تم الاتصال بخدمة الإشعارات الصوتية');
+             };
+             
+             eventSource.onmessage = function(event) {
+                 try {
+                     const data = JSON.parse(event.data);
+                     console.log('تم استلام إشعار:', data);
+                     
+                     if (data.type === 'announcement') {
+                         console.log('تشغيل مناداة مركزية:', data.ticket_number, data.patient_name);
+                         
+                         // تشغيل المناداة الصوتية بالرقم فقط
+                         playTicketAndPatientAnnouncement(data.ticket_number)
+                             .then(() => {
+                                 console.log('تم تشغيل المناداة المركزية بنجاح');
+                             })
+                             .catch((error) => {
+                                 console.error('خطأ في تشغيل المناداة المركزية:', error);
+                             });
+                     } else if (data.type === 'heartbeat') {
+                         // heartbeat للحفاظ على الاتصال
+                         console.log('Heartbeat received');
+                     }
+                 } catch (error) {
+                     console.error('خطأ في معالجة الإشعار:', error);
+                 }
+             };
+             
+             eventSource.onerror = function(event) {
+                 console.error('خطأ في اتصال الإشعارات الصوتية:', event);
+                 
+                 // إعادة المحاولة بعد 5 ثوان
+                 setTimeout(() => {
+                     console.log('إعادة محاولة الاتصال بخدمة الإشعارات...');
+                     eventSource.close();
+                     startAnnouncementListener();
+                 }, 5000);
+             };
+             
+             // حفظ مرجع للاتصال لإمكانية إغلاقه لاحقاً
+             window.announcementEventSource = eventSource;
+         }
+         
+         // تحديث أولي عند تحميل الصفحة
+         document.addEventListener('DOMContentLoaded', () => {
+             console.log('تم تحميل الصفحة، بدء التهيئة...');
+             
+             // تعيين القيمة الأولية لمعرف التذكرة الحالية
+             const currentTicketElement = document.getElementById('currentTicket');
+             if (currentTicketElement) {
+                 lastTicketNumber = currentTicketElement.dataset.ticketNumber;
+             }
+             
+             // بدء الاستماع للإشعارات الصوتية
+             startAnnouncementListener();
+             
+             // تحميل الأصوات مسبقًا
+             try {
+                 const notificationSound = new Audio('/static/sounds/notification.mp3');
+                 notificationSound.preload = 'auto';
+                 notificationSound.load();
+                 console.log('تم تحميل صوت التنبيه');
+                 
+                 // تجربة تشغيل صامت لتفعيل الصوت في المتصفح
+                 notificationSound.volume = 0;
+                 notificationSound.play().then(() => {
+                     notificationSound.pause();
+                     notificationSound.volume = 0.8;
+                     console.log('تم تفعيل الصوت في المتصفح');
+                 }).catch(() => {
+                     console.log('المتصفح يتطلب تفاعل المستخدم لتشغيل الصوت');
+                 });
+             } catch (error) {
+                 console.error('خطأ في تحميل صوت التنبيه:', error);
+             }
+             
+             // تهيئة واجهة الكلام
+             if ('speechSynthesis' in window) {
+                 // تحميل الأصوات مسبقًا
+                 window.speechSynthesis.getVoices();
+                 console.log('تم تهيئة واجهة الكلام');
+             } else {
+                 console.error('واجهة الكلام غير مدعومة في هذا المتصفح');
+             }
+             
+             // تحديث وقت آخر تحديث
+             updateLastRefreshTime();
+             
+             // بدء التحديث الدوري
+             startPeriodicUpdates();
+             console.log('تم بدء التحديث الدوري كل ' + (updateInterval / 1000) + ' ثوانٍ');
+             
+             // تفعيل وضع ملء الشاشة تلقائيًا عند تحميل الصفحة
+             setTimeout(() => {
+                 toggleFullScreen();
+                 console.log('تم تفعيل وضع ملء الشاشة');
+             }, 1000);
+             
+             // تحسين التجاوب مع الشاشات المختلفة
+             adjustResponsiveLayout();
+             window.addEventListener('resize', adjustResponsiveLayout);
+             console.log('تم ضبط التخطيط المتجاوب');
+             
+             // إضافة مستمع للأحداث للتعامل مع تغييرات الشبكة
+             window.addEventListener('online', () => {
+                 console.log('تم استعادة الاتصال بالإنترنت، إعادة بدء التحديثات...');
+                 startPeriodicUpdates();
+             });
+             
+             window.addEventListener('offline', () => {
+                 console.log('تم فقدان الاتصال بالإنترنت، توقف التحديثات...');
+                 if (updateTimer) {
+                     clearInterval(updateTimer);
+                 }
+             });
+         });
+         
+         // وظيفة لتحسين التجاوب مع الشاشات المختلفة
+         function adjustResponsiveLayout() {
+             const screenWidth = window.innerWidth;
+             const screenHeight = window.innerHeight;
+             const isSmallScreen = screenWidth < 576;
+             const isMobile = screenWidth < 768;
+             const isLargeScreen = screenWidth >= 1200;
+             
+             // تعديل حجم الخط وتنسيق العناصر بناءً على حجم الشاشة
+             if (isSmallScreen) {
+                 document.documentElement.style.setProperty('--ticket-font-size', 'calc(2.5rem + 2.5vw)');
+                 document.documentElement.style.setProperty('--patient-name-font-size', 'calc(1rem + 1vw)');
+             } else if (isMobile) {
+                 document.documentElement.style.setProperty('--ticket-font-size', 'calc(3rem + 3vw)');
+                 document.documentElement.style.setProperty('--patient-name-font-size', 'calc(1.2rem + 1.2vw)');
+             } else if (isLargeScreen) {
+                 document.documentElement.style.setProperty('--ticket-font-size', 'calc(5rem + 2vw)');
+                 document.documentElement.style.setProperty('--patient-name-font-size', 'calc(2rem + 1vw)');
+             } else {
+                 document.documentElement.style.setProperty('--ticket-font-size', 'calc(4rem + 4vw)');
+                 document.documentElement.style.setProperty('--patient-name-font-size', 'calc(1.5rem + 1.5vw)');
+             }
+             
+             // تعديل التخطيط بناءً على نسبة العرض إلى الارتفاع
+             const aspectRatio = screenWidth / screenHeight;
+             if (aspectRatio < 1) { // شاشة عمودية
+                 document.body.classList.add('portrait-mode');
+                 document.body.classList.remove('landscape-mode');
+             } else { // شاشة أفقية
+                 document.body.classList.add('landscape-mode');
+                 document.body.classList.remove('portrait-mode');
+             }
+         }
+         
+         // الاستماع لتغييرات وضع ملء الشاشة
+         document.addEventListener('fullscreenchange', updateFullscreenButtonText);
+         document.addEventListener('webkitfullscreenchange', updateFullscreenButtonText);
+         document.addEventListener('mozfullscreenchange', updateFullscreenButtonText);
+         document.addEventListener('MSFullscreenChange', updateFullscreenButtonText);
+         
+         // تحديث نص زر ملء الشاشة
+         function updateFullscreenButtonText() {
+             const fullscreenBtn = document.getElementById('fullscreen-btn');
+             if (document.fullscreenElement || document.webkitFullscreenElement || 
+                 document.mozFullScreenElement || document.msFullscreenElement) {
+                 fullscreenBtn.innerHTML = '<i class="fas fa-compress"></i> إلغاء ملء الشاشة';
+             } else {
+                 fullscreenBtn.innerHTML = '<i class="fas fa-expand"></i> ملء الشاشة';
+             }
+         }
+         
+         // وظيفة للاستماع للإشعارات الصوتية من السيرفر
+         function startAnnouncementListener() {
+             console.log('بدء الاستماع للإشعارات الصوتية...');
+             
+             if (typeof(EventSource) !== "undefined") {
+                 const eventSource = new EventSource('/api/announcement-stream');
+                 
+                 eventSource.onmessage = function(event) {
+                     try {
+                         const data = JSON.parse(event.data);
+                         console.log('تم استلام إشعار:', data);
+                         
+                         if (data.type === 'announcement') {
+                             // تشغيل المناداة الصوتية
+                             console.log('تشغيل مناداة مركزية:', data.ticket_number, data.patient_name);
+                             playTicketAndPatientAnnouncement(data.ticket_number, data.patient_name).catch((error) => {
+                                 console.error('خطأ في تشغيل المناداة المركزية:', error);
+                             });
+                         }
+                     } catch (error) {
+                         console.error('خطأ في معالجة الإشعار:', error);
+                     }
+                 };
+                 
+                 eventSource.onerror = function(event) {
+                     console.error('خطأ في الاتصال بخدمة الإشعارات:', event);
+                     // إعادة المحاولة بعد 5 ثوان
+                     setTimeout(() => {
+                         console.log('إعادة محاولة الاتصال بخدمة الإشعارات...');
+                         startAnnouncementListener();
+                     }, 5000);
+                 };
+                 
+                 eventSource.onopen = function(event) {
+                     console.log('تم الاتصال بخدمة الإشعارات بنجاح');
+                 };
+                 
+             } else {
+                 console.error('المتصفح لا يدعم Server-Sent Events');
+             }
+         }
+    </script>
+</body>
+</html>

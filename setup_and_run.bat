@@ -1,0 +1,6 @@
+@echo off
+echo تحديث قاعدة البيانات...
+py -3.10 update_db.py
+echo.
+echo تشغيل التطبيق...
+py -3.10 run.py
