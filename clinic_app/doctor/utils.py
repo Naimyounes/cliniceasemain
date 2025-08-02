@@ -1,13 +1,14 @@
 from flask import current_app, render_template, url_for
 import os
 from datetime import datetime
-from reportlab.lib.pagesizes import letter, A5, inch
+from reportlab.lib.pagesizes import letter, A4, inch
 from reportlab.pdfgen import canvas
 from reportlab.lib import colors
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image
-from reportlab.lib.units import mm
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image, PageBreak, KeepTogether
+from reportlab.lib.units import mm, cm
 from reportlab.lib.enums import TA_RIGHT, TA_CENTER, TA_LEFT
+from reportlab.platypus.flowables import HRFlowable
 
 def generate_prescription_pdf(prescription, visit):
     # إنشاء مجلد للوصفات الطبية إذا لم يكن موجودًا
@@ -23,7 +24,14 @@ def generate_prescription_pdf(prescription, visit):
     file_path = os.path.join(prescriptions_dir, filename)
 
     # إنشاء ملف PDF بحجم A4
-    doc = SimpleDocTemplate(file_path, pagesize=letter, rightMargin=20*mm, leftMargin=20*mm, topMargin=20*mm, bottomMargin=20*mm)
+    doc = SimpleDocTemplate(
+        file_path, 
+        pagesize=A4, 
+        rightMargin=20*mm, 
+        leftMargin=20*mm, 
+        topMargin=20*mm, 
+        bottomMargin=20*mm
+    )
     styles = getSampleStyleSheet()
     story = []
 
@@ -33,21 +41,55 @@ def generate_prescription_pdf(prescription, visit):
         parent=styles['Title'],
         alignment=TA_CENTER,
         fontName='Helvetica-Bold',
-        fontSize=24,
-        spaceAfter=5,
-        leading=28,
-        textColor=colors.darkblue
+        fontSize=16,
+        spaceAfter=2,
+        leading=20,
+        textColor=colors.black
     )
     
-    doctor_style = ParagraphStyle(
-        'DoctorStyle',
+    subtitle_style = ParagraphStyle(
+        'SubtitleStyle',
         parent=styles['Normal'],
         alignment=TA_CENTER,
         fontName='Helvetica',
-        fontSize=14,
+        fontSize=12,
+        spaceAfter=5,
+        leading=14,
+        textColor=colors.black
+    )
+    
+    date_location_style = ParagraphStyle(
+        'DateLocationStyle',
+        parent=styles['Normal'],
+        alignment=TA_LEFT,
+        fontName='Helvetica',
+        fontSize=11,
         spaceAfter=15,
-        leading=18,
-        textColor=colors.darkblue
+        leading=14,
+        textColor=colors.black
+    )
+    
+    patient_label_style = ParagraphStyle(
+        'PatientLabelStyle',
+        parent=styles['Normal'],
+        alignment=TA_LEFT,
+        fontName='Helvetica',
+        fontSize=11,
+        spaceAfter=0,
+        leading=14,
+        textColor=colors.black
+    )
+    
+    patient_value_style = ParagraphStyle(
+        'PatientValueStyle',
+        parent=styles['Normal'],
+        alignment=TA_LEFT,
+        fontName='Helvetica',
+        fontSize=11,
+        spaceAfter=8,
+        leftIndent=50,
+        leading=14,
+        textColor=colors.black
     )
     
     prescription_title = ParagraphStyle(
@@ -55,160 +97,114 @@ def generate_prescription_pdf(prescription, visit):
         parent=styles['Title'],
         alignment=TA_CENTER,
         fontName='Helvetica-Bold',
-        fontSize=20,
-        spaceAfter=20,
-        leading=24,
-        textColor=colors.darkgreen
+        fontSize=14,
+        spaceAfter=15,
+        spaceBefore=25,
+        leading=18,
+        textColor=colors.black
     )
     
-    arabic_heading = ParagraphStyle(
-        'ArabicHeading',
-        parent=styles['Heading1'],
-        alignment=TA_RIGHT,
-        fontName='Helvetica-Bold',
-        fontSize=12,
-        spaceAfter=5,
-        leading=16
-    )
-    
-    arabic_normal = ParagraphStyle(
-        'ArabicNormal',
+    medication_style = ParagraphStyle(
+        'MedicationStyle',
         parent=styles['Normal'],
-        alignment=TA_RIGHT,
+        alignment=TA_LEFT,
         fontName='Helvetica',
         fontSize=11,
-        spaceAfter=3,
-        leading=14
+        spaceAfter=15,
+        leftIndent=25,
+        leading=16,
+        textColor=colors.black
     )
     
     # رأس الوصفة - معلومات العيادة
-    story.append(Paragraph("Cabinet Dentaire", clinic_title))
-    story.append(Paragraph(f"Dr. {visit.doctor.username}", doctor_style))
+    story.append(Paragraph(f"cabinet Dentaire {visit.doctor.username}", clinic_title))
+    story.append(Paragraph("7/7j", subtitle_style))
+    story.append(Spacer(1, 30))
     
-    # خط فاصل
-    story.append(Spacer(1, 10))
-    line_data = [['_' * 80]]
-    line_table = Table(line_data, colWidths=[400])
-    line_table.setStyle(TableStyle([
-        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-        ('TEXTCOLOR', (0, 0), (-1, -1), colors.grey),
+    # التاريخ والموقع
+    location = "Oran"  # يمكنك تغيير هذا حسب موقع العيادة
+    date_text = f"{location} le : {visit.date.strftime('%d/%m/%Y')}"
+    story.append(Paragraph(date_text, date_location_style))
+    
+    # معلومات المريض في نفس السطر
+    # الاسم
+    patient_name = visit.patient.last_name.upper() if hasattr(visit.patient, 'last_name') else visit.patient.full_name.split()[-1].upper()
+    name_table = Table([["Nom :", patient_name]], colWidths=[50, 200])
+    name_table.setStyle(TableStyle([
+        ('ALIGN', (0, 0), (0, 0), 'LEFT'),
+        ('ALIGN', (1, 0), (1, 0), 'LEFT'),
+        ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
+        ('FONTSIZE', (0, 0), (-1, -1), 11),
+        ('TOPPADDING', (0, 0), (-1, -1), 0),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
+        ('LEFTPADDING', (0, 0), (-1, -1), 0),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 0),
     ]))
-    story.append(line_table)
-    story.append(Spacer(1, 15))
+    story.append(name_table)
     
-    # معلومات المريض والزيارة في جدول منظم
+    # الأسماء
+    patient_firstname = visit.patient.first_name.upper() if hasattr(visit.patient, 'first_name') else visit.patient.full_name.split()[0].upper()
+    prenom_table = Table([["Prénoms :", patient_firstname]], colWidths=[50, 200])
+    prenom_table.setStyle(TableStyle([
+        ('ALIGN', (0, 0), (0, 0), 'LEFT'),
+        ('ALIGN', (1, 0), (1, 0), 'LEFT'),
+        ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
+        ('FONTSIZE', (0, 0), (-1, -1), 11),
+        ('TOPPADDING', (0, 0), (-1, -1), 0),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
+        ('LEFTPADDING', (0, 0), (-1, -1), 0),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 0),
+    ]))
+    story.append(prenom_table)
+    
+    # حساب العمر
     patient_age = ""
     if visit.patient.birth_date:
         from datetime import date
         today = date.today()
         age = today.year - visit.patient.birth_date.year - ((today.month, today.day) < (visit.patient.birth_date.month, visit.patient.birth_date.day))
-        patient_age = f"{age} سنة"
+        patient_age = f"{age} an(s)"
     
-    patient_info = [
-        ["Nom:", visit.patient.full_name, "Age:", patient_age],
-        ["Date:", visit.date.strftime("%d/%m/%Y"), "Tel:", visit.patient.phone or "غير محدد"]
-    ]
-    
-    patient_table = Table(patient_info, colWidths=[60, 140, 60, 140])
-    patient_table.setStyle(TableStyle([
-        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-        ('TEXTCOLOR', (0, 0), (-1, -1), colors.black),
-        ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
-        ('FONTNAME', (2, 0), (2, -1), 'Helvetica-Bold'),
-        ('FONTNAME', (1, 0), (1, -1), 'Helvetica'),
-        ('FONTNAME', (3, 0), (3, -1), 'Helvetica'),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
-        ('TOPPADDING', (0, 0), (-1, -1), 8),
-        ('GRID', (0, 0), (-1, -1), 0.5, colors.lightgrey),
+    age_table = Table([["Age :", patient_age]], colWidths=[50, 200])
+    age_table.setStyle(TableStyle([
+        ('ALIGN', (0, 0), (0, 0), 'LEFT'),
+        ('ALIGN', (1, 0), (1, 0), 'LEFT'),
+        ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
+        ('FONTSIZE', (0, 0), (-1, -1), 11),
+        ('TOPPADDING', (0, 0), (-1, -1), 0),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
+        ('LEFTPADDING', (0, 0), (-1, -1), 0),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 0),
     ]))
-    
-    story.append(patient_table)
-    story.append(Spacer(1, 20))
+    story.append(age_table)
     
     # عنوان الوصفة
     story.append(Paragraph("ORDONNANCE", prescription_title))
-    story.append(Spacer(1, 15))
-
+    
     # قائمة الأدوية
-    medications_data = []
-    
-    # إضافة رأس الجدول
-    medications_data.append([
-        Paragraph("#", arabic_heading), 
-        Paragraph("الدواء", arabic_heading), 
-        Paragraph("الكمية/المدة", arabic_heading),
-        Paragraph("التعليمات", arabic_heading)
-    ])
-    
-    # إضافة الأدوية
+    medications_text = ""
     for i, med in enumerate(prescription.prescription_medications, 1):
-        medications_data.append([
-            Paragraph(str(i), arabic_normal),
-            Paragraph(med.medication.name, arabic_normal),
-            Paragraph(med.quantity or "غير محدد", arabic_normal),
-            Paragraph(med.instructions or "حسب الحاجة", arabic_normal)
-        ])
+        # بناء نص الدواء
+        med_text = f"{i}.<br/>"
+        med_text += f"&nbsp;&nbsp;&nbsp;&nbsp;{med.medication.name.upper()}"
+        
+        if med.quantity:
+            med_text += f" {med.quantity.upper()}"
+        
+        med_text += "<br/>"
+        
+        if med.instructions:
+            med_text += f"&nbsp;&nbsp;&nbsp;&nbsp;{med.instructions.upper()}"
+        
+        if i < len(prescription.prescription_medications):
+            med_text += "<br/><br/>"
+        
+        medications_text += med_text
     
-    # إنشاء جدول الأدوية
-    col_widths = [25, 120, 80, 155]
-    medications_table = Table(medications_data, colWidths=col_widths)
-    medications_table.setStyle(TableStyle([
-        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-        ('TEXTCOLOR', (0, 0), (-1, -1), colors.black),
-        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-        ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
-        ('FONTSIZE', (0, 0), (-1, 0), 12),
-        ('FONTSIZE', (0, 1), (-1, -1), 10),
-        ('GRID', (0, 0), (-1, -1), 1, colors.black),
-        ('BACKGROUND', (0, 0), (-1, 0), colors.lightblue),
-        ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.lightgrey]),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
-        ('TOPPADDING', (0, 0), (-1, -1), 8),
-        ('LEFTPADDING', (0, 0), (-1, -1), 6),
-        ('RIGHTPADDING', (0, 0), (-1, -1), 6),
-    ]))
+    story.append(Paragraph(medications_text, medication_style))
     
-    story.append(medications_table)
-    story.append(Spacer(1, 40))
-    
-    # إضافة معلومات إضافية إذا وجدت
-    if visit.notes:
-        notes_style = ParagraphStyle(
-            'NotesStyle',
-            parent=styles['Normal'],
-            alignment=TA_LEFT,
-            fontName='Helvetica',
-            fontSize=10,
-            spaceAfter=15,
-            leading=14
-        )
-        story.append(Paragraph(f"Notes: {visit.notes}", notes_style))
-        story.append(Spacer(1, 20))
-    
-    # إضافة توقيع الطبيب
-    signature_style = ParagraphStyle(
-        'SignatureStyle',
-        parent=styles['Normal'],
-        alignment=TA_RIGHT,
-        fontName='Helvetica-Bold',
-        fontSize=12,
-        spaceAfter=10,
-        leading=16
-    )
-    
-    signature_text = f"Dr. {visit.doctor.username}"
-    story.append(Paragraph(signature_text, signature_style))
-    
-    # إضافة خط للتوقيع
-    signature_line = [['_' * 30]]
-    sig_table = Table(signature_line, colWidths=[200])
-    sig_table.setStyle(TableStyle([
-        ('ALIGN', (0, 0), (-1, -1), 'RIGHT'),
-        ('TEXTCOLOR', (0, 0), (-1, -1), colors.grey),
-    ]))
-    story.append(sig_table)
+    # مساحة للتوقيع والختم
+    story.append(Spacer(1, 100))
     
     # إنشاء الملف النهائي
     doc.build(story)
