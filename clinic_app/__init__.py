@@ -1,7 +1,7 @@
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
-from flask_wtf.csrf import CSRFProtect, generate_csrf
+from flask_wtf.csrf import CSRFProtect
 import os
 from datetime import datetime
 
@@ -16,22 +16,6 @@ def create_app():
 
     # إعدادات التطبيق
     app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "default_secret_key_for_development")
-    
-    # إعدادات Session مخصصة لـ ClinicEase لتجنب التداخل مع web API
-    app.config["SESSION_COOKIE_NAME"] = "clinicease_session"  # اسم مختلف عن web API
-    app.config["SESSION_COOKIE_SECURE"] = False  # للتطوير المحلي
-    app.config["SESSION_COOKIE_HTTPONLY"] = True
-    app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
-    app.config["SESSION_COOKIE_DOMAIN"] = None  # للتطوير المحلي
-    app.config["SESSION_COOKIE_PATH"] = "/"
-    app.config["PERMANENT_SESSION_LIFETIME"] = 7200  # ساعتين
-    app.config["SESSION_REFRESH_EACH_REQUEST"] = True
-    
-    # إعدادات CSRF مخصصة لـ ClinicEase
-    app.config["WTF_CSRF_TIME_LIMIT"] = 3600  # ساعة واحدة
-    app.config["WTF_CSRF_SSL_STRICT"] = False  # للتطوير المحلي
-    app.config["WTF_CSRF_SECRET_KEY"] = "clinicease_csrf_secret_2024"  # مفتاح مختلف
-    
     # إنشاء مجلد instance إذا لم يكن موجوداً
     instance_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'instance')
     os.makedirs(instance_path, exist_ok=True)
@@ -64,47 +48,6 @@ def create_app():
     app.register_blueprint(doctor)
     app.register_blueprint(secretary)
     app.register_blueprint(main)
-    
-    # معالج أخطاء CSRF لتجنب تسجيل الخروج التلقائي
-    @app.errorhandler(400)
-    def handle_csrf_error(e):
-        from flask import flash, redirect, url_for, request
-        from flask_login import current_user
-        
-        # إذا كان الخطأ متعلق بـ CSRF والمستخدم مسجل دخول
-        if 'CSRF' in str(e) and current_user.is_authenticated:
-            flash('انتهت صلاحية النموذج. يرجى المحاولة مرة أخرى.', 'warning')
-            # إعادة توجيه إلى الصفحة المناسبة حسب دور المستخدم
-            if current_user.role == 'secretary':
-                return redirect(url_for('secretary.dashboard'))
-            elif current_user.role == 'doctor':
-                return redirect(url_for('doctor.dashboard'))
-        
-        return redirect(url_for('main.index'))
-    
-    # معالج أخطاء CSRF المخصص
-    from flask_wtf.csrf import CSRFError
-    @app.errorhandler(CSRFError)
-    def handle_csrf_error(e):
-        from flask import flash, redirect, url_for, request
-        from flask_login import current_user
-        
-        if current_user.is_authenticated:
-            flash('انتهت صلاحية النموذج. يرجى المحاولة مرة أخرى.', 'warning')
-            # البقاء في نفس الصفحة إذا أمكن
-            if request.endpoint:
-                try:
-                    return redirect(url_for(request.endpoint))
-                except:
-                    pass
-            
-            # إعادة توجيه حسب الدور
-            if current_user.role == 'secretary':
-                return redirect(url_for('secretary.online_appointments'))
-            elif current_user.role == 'doctor':
-                return redirect(url_for('doctor.dashboard'))
-        
-        return redirect(url_for('auth.login'))
 
     # إنشاء قاعدة البيانات
     with app.app_context():
@@ -190,8 +133,7 @@ def create_app():
             get_current_date=get_current_date,
             get_current_datetime=get_current_datetime,
             get_arabic_date=get_arabic_date,
-            get_secretary_notifications=get_secretary_notifications,
-            csrf_token=generate_csrf
+            get_secretary_notifications=get_secretary_notifications
         )
 
     return app
